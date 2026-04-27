@@ -1,0 +1,28 @@
+# Build results
+bin/
+obj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ASP.NET / Secrets
+appsettings.Development.json
+secrets.json
+
+# Rider / VS Code (optional but good)
+.idea/
+.vscode/
+
+# Node (if you ever add frontend)
+node_modules/

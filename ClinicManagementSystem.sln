@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.37012.4 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClinicMVC", "ClinicMVC\ClinicMVC.csproj", "{856DC673-51E8-4327-B302-55A6970853F4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClinicAPI", "ClinicAPI\ClinicAPI.csproj", "{0CF02402-A366-4D02-A119-62E526A4775E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{856DC673-51E8-4327-B302-55A6970853F4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{856DC673-51E8-4327-B302-55A6970853F4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{856DC673-51E8-4327-B302-55A6970853F4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{856DC673-51E8-4327-B302-55A6970853F4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0CF02402-A366-4D02-A119-62E526A4775E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0CF02402-A366-4D02-A119-62E526A4775E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0CF02402-A366-4D02-A119-62E526A4775E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0CF02402-A366-4D02-A119-62E526A4775E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {ECC234BF-AE8A-4E15-8912-5318A24D1C54}
+	EndGlobalSection
+EndGlobal
