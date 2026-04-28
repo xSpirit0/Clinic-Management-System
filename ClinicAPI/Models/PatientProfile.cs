@@ -25,5 +25,5 @@ public partial class PatientProfile
 
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
-    public virtual AspNetUser? AspNetUser { get; set; }
+    public virtual ApplicationUser? AspNetUser { get; set; }
 }

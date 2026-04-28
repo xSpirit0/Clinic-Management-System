@@ -21,5 +21,5 @@ public partial class AppointmentStatusHistory
 
     public virtual AppointmentStatus AppointmentStatus { get; set; } = null!;
 
-    public virtual AspNetUser? ChangedByAspNetUser { get; set; }
+    public virtual ApplicationUser? ChangedByAspNetUser { get; set; }
 }

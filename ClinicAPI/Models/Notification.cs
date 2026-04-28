@@ -23,7 +23,7 @@ public partial class Notification
 
     public virtual Appointment? Appointment { get; set; }
 
-    public virtual AspNetUser? AspNetUser { get; set; }
+    public virtual ApplicationUser? AspNetUser { get; set; }
 
     public virtual NotificationType NotificationType { get; set; } = null!;
 }

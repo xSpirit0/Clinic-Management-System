@@ -17,7 +17,7 @@ public partial class DoctorProfile
 
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
-    public virtual AspNetUser? AspNetUser { get; set; }
+    public virtual ApplicationUser? AspNetUser { get; set; }
 
     public virtual ICollection<DoctorLeave> DoctorLeaves { get; set; } = new List<DoctorLeave>();
 

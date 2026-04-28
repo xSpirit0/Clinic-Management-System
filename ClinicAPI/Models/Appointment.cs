@@ -33,7 +33,7 @@ public partial class Appointment
 
     public virtual ICollection<AppointmentStatusHistory> AppointmentStatusHistories { get; set; } = new List<AppointmentStatusHistory>();
 
-    public virtual AspNetUser? CreatedByAspNetUser { get; set; }
+    public virtual ApplicationUser? CreatedByAspNetUser { get; set; }
 
     public virtual DoctorProfile Doctor { get; set; } = null!;
 

@@ -23,7 +23,7 @@ public partial class DoctorLeave
 
     public string? ApprovedByAspNetUserId { get; set; }
 
-    public virtual AspNetUser? ApprovedByAspNetUser { get; set; }
+    public virtual ApplicationUser? ApprovedByAspNetUser { get; set; }
 
     public virtual DoctorProfile Doctor { get; set; } = null!;
 
