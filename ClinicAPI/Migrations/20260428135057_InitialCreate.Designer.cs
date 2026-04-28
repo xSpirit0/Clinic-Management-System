@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClinicAPI.Migrations
 {
     [DbContext(typeof(ClinicDbContext))]
-    [Migration("20260428113024_AddIdentityTables")]
-    partial class AddIdentityTables
+    [Migration("20260428135057_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,64 +24,6 @@ namespace ClinicAPI.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
-
-            modelBuilder.Entity("ClinicAPI.Models.AppUser", b =>
-                {
-                    b.Property<int>("UserId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserId"));
-
-                    b.Property<string>("ApplicationUserId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("(sysdatetime())");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<int>("UserRoleId")
-                        .HasColumnType("int");
-
-                    b.HasKey("UserId")
-                        .HasName("PK__AppUser__1788CC4C4F88A0E8");
-
-                    b.HasIndex("UserRoleId");
-
-                    b.HasIndex(new[] { "Email" }, "UQ__AppUser__A9D105344F8BFAF3")
-                        .IsUnique();
-
-                    b.HasIndex(new[] { "ApplicationUserId" }, "UX_AppUser_ApplicationUserId_NotNull")
-                        .IsUnique()
-                        .HasFilter("([ApplicationUserId] IS NOT NULL)");
-
-                    b.ToTable("AppUser", (string)null);
-                });
 
             modelBuilder.Entity("ClinicAPI.Models.ApplicationUser", b =>
                 {
@@ -170,8 +112,9 @@ namespace ClinicAPI.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("(sysdatetime())");
 
-                    b.Property<int>("CreatedByUserId")
-                        .HasColumnType("int");
+                    b.Property<string>("CreatedByAspNetUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("DoctorId")
                         .HasColumnType("int");
@@ -199,7 +142,7 @@ namespace ClinicAPI.Migrations
 
                     b.HasIndex("AppointmentStatusId");
 
-                    b.HasIndex("CreatedByUserId");
+                    b.HasIndex("CreatedByAspNetUserId");
 
                     b.HasIndex("DoctorId");
 
@@ -252,8 +195,9 @@ namespace ClinicAPI.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("(sysdatetime())");
 
-                    b.Property<int>("ChangedByUserId")
-                        .HasColumnType("int");
+                    b.Property<string>("ChangedByAspNetUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
@@ -265,7 +209,7 @@ namespace ClinicAPI.Migrations
 
                     b.HasIndex("AppointmentStatusId");
 
-                    b.HasIndex("ChangedByUserId");
+                    b.HasIndex("ChangedByAspNetUserId");
 
                     b.ToTable("AppointmentStatusHistory", (string)null);
                 });
@@ -281,8 +225,9 @@ namespace ClinicAPI.Migrations
                     b.Property<DateTime?>("ApprovedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("ApprovedByUserId")
-                        .HasColumnType("int");
+                    b.Property<string>("ApprovedByAspNetUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("DoctorId")
                         .HasColumnType("int");
@@ -305,7 +250,7 @@ namespace ClinicAPI.Migrations
                     b.HasKey("DoctorLeaveId")
                         .HasName("PK__DoctorLe__B1CB912B446FF000");
 
-                    b.HasIndex("ApprovedByUserId");
+                    b.HasIndex("ApprovedByAspNetUserId");
 
                     b.HasIndex("DoctorId");
 
@@ -322,6 +267,10 @@ namespace ClinicAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DoctorId"));
 
+                    b.Property<string>("AspNetUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Biography")
                         .HasColumnType("nvarchar(max)");
 
@@ -335,14 +284,10 @@ namespace ClinicAPI.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
                     b.HasKey("DoctorId")
                         .HasName("PK__DoctorPr__2DC00EBF2B67E9C5");
 
-                    b.HasIndex(new[] { "UserId" }, "UQ__DoctorPr__1788CC4D654B8DBA")
-                        .IsUnique();
+                    b.HasIndex("AspNetUserId");
 
                     b.HasIndex(new[] { "LicenseNumber" }, "UQ__DoctorPr__E88901666FFDCB7D")
                         .IsUnique();
@@ -447,6 +392,10 @@ namespace ClinicAPI.Migrations
                     b.Property<int?>("AppointmentId")
                         .HasColumnType("int");
 
+                    b.Property<string>("AspNetUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -467,17 +416,14 @@ namespace ClinicAPI.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
                     b.HasKey("NotificationId")
                         .HasName("PK__Notifica__20CF2E126219CA94");
 
                     b.HasIndex("AppointmentId");
 
-                    b.HasIndex("NotificationTypeId");
+                    b.HasIndex("AspNetUserId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("NotificationTypeId");
 
                     b.ToTable("Notification", (string)null);
                 });
@@ -512,6 +458,10 @@ namespace ClinicAPI.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PatientId"));
 
+                    b.Property<string>("AspNetUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("BloodType")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
@@ -542,14 +492,10 @@ namespace ClinicAPI.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
                     b.HasKey("PatientId")
                         .HasName("PK__PatientP__970EC366847975D2");
 
-                    b.HasIndex(new[] { "UserId" }, "UQ__PatientP__1788CC4DE16D6E3D")
-                        .IsUnique();
+                    b.HasIndex("AspNetUserId");
 
                     b.HasIndex(new[] { "PatientReferenceNumber" }, "UQ__PatientP__8C7D9721B58AD64C")
                         .IsUnique();
@@ -677,28 +623,6 @@ namespace ClinicAPI.Migrations
                     b.ToTable("Specialization", (string)null);
                 });
 
-            modelBuilder.Entity("ClinicAPI.Models.UserRole", b =>
-                {
-                    b.Property<int>("UserRoleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UserRoleId"));
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("UserRoleId")
-                        .HasName("PK__UserRole__3D978A3523C80348");
-
-                    b.HasIndex(new[] { "Role" }, "UQ__UserRole__DA15413EC99C3B35")
-                        .IsUnique();
-
-                    b.ToTable("UserRole", (string)null);
-                });
-
             modelBuilder.Entity("ClinicAPI.Models.VisitRecord", b =>
                 {
                     b.Property<int>("VisitRecordId")
@@ -818,10 +742,12 @@ namespace ClinicAPI.Migrations
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("ProviderKey")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("ProviderDisplayName")
                         .HasColumnType("nvarchar(max)");
@@ -849,7 +775,7 @@ namespace ClinicAPI.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("ApplicationUserRoles", (string)null);
+                    b.ToTable("AspNetUserRoles", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -858,10 +784,12 @@ namespace ClinicAPI.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("LoginProvider")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("Name")
-                        .HasColumnType("nvarchar(450)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("Value")
                         .HasColumnType("nvarchar(max)");
@@ -869,17 +797,6 @@ namespace ClinicAPI.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name");
 
                     b.ToTable("AspNetUserTokens", (string)null);
-                });
-
-            modelBuilder.Entity("ClinicAPI.Models.AppUser", b =>
-                {
-                    b.HasOne("ClinicAPI.Models.UserRole", "UserRole")
-                        .WithMany("AppUsers")
-                        .HasForeignKey("UserRoleId")
-                        .IsRequired()
-                        .HasConstraintName("FK_AppUser_UserRole");
-
-                    b.Navigation("UserRole");
                 });
 
             modelBuilder.Entity("ClinicAPI.Models.Appointment", b =>
@@ -890,11 +807,10 @@ namespace ClinicAPI.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_Appointment_Status");
 
-                    b.HasOne("ClinicAPI.Models.AppUser", "CreatedByUser")
-                        .WithMany("Appointments")
-                        .HasForeignKey("CreatedByUserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_Appointment_CreatedBy");
+                    b.HasOne("ClinicAPI.Models.ApplicationUser", "CreatedByAspNetUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByAspNetUserId")
+                        .HasConstraintName("FK_Appointment_CreatedByAspNetUsers");
 
                     b.HasOne("ClinicAPI.Models.DoctorProfile", "Doctor")
                         .WithMany("Appointments")
@@ -916,7 +832,7 @@ namespace ClinicAPI.Migrations
 
                     b.Navigation("AppointmentStatus");
 
-                    b.Navigation("CreatedByUser");
+                    b.Navigation("CreatedByAspNetUser");
 
                     b.Navigation("Doctor");
 
@@ -939,25 +855,24 @@ namespace ClinicAPI.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_StatusHistory_Status");
 
-                    b.HasOne("ClinicAPI.Models.AppUser", "ChangedByUser")
-                        .WithMany("AppointmentStatusHistories")
-                        .HasForeignKey("ChangedByUserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_StatusHistory_ChangedBy");
+                    b.HasOne("ClinicAPI.Models.ApplicationUser", "ChangedByAspNetUser")
+                        .WithMany()
+                        .HasForeignKey("ChangedByAspNetUserId")
+                        .HasConstraintName("FK_StatusHistory_ChangedByAspNetUsers");
 
                     b.Navigation("Appointment");
 
                     b.Navigation("AppointmentStatus");
 
-                    b.Navigation("ChangedByUser");
+                    b.Navigation("ChangedByAspNetUser");
                 });
 
             modelBuilder.Entity("ClinicAPI.Models.DoctorLeave", b =>
                 {
-                    b.HasOne("ClinicAPI.Models.AppUser", "ApprovedByUser")
-                        .WithMany("DoctorLeaves")
-                        .HasForeignKey("ApprovedByUserId")
-                        .HasConstraintName("FK_DoctorLeave_ApprovedBy");
+                    b.HasOne("ClinicAPI.Models.ApplicationUser", "ApprovedByAspNetUser")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByAspNetUserId")
+                        .HasConstraintName("FK_DoctorLeave_ApprovedByAspNetUsers");
 
                     b.HasOne("ClinicAPI.Models.DoctorProfile", "Doctor")
                         .WithMany("DoctorLeaves")
@@ -971,7 +886,7 @@ namespace ClinicAPI.Migrations
                         .IsRequired()
                         .HasConstraintName("FK_DoctorLeave_Status");
 
-                    b.Navigation("ApprovedByUser");
+                    b.Navigation("ApprovedByAspNetUser");
 
                     b.Navigation("Doctor");
 
@@ -980,13 +895,12 @@ namespace ClinicAPI.Migrations
 
             modelBuilder.Entity("ClinicAPI.Models.DoctorProfile", b =>
                 {
-                    b.HasOne("ClinicAPI.Models.AppUser", "User")
-                        .WithOne("DoctorProfile")
-                        .HasForeignKey("ClinicAPI.Models.DoctorProfile", "UserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_DoctorProfile_AppUser");
+                    b.HasOne("ClinicAPI.Models.ApplicationUser", "AspNetUser")
+                        .WithMany()
+                        .HasForeignKey("AspNetUserId")
+                        .HasConstraintName("FK_DoctorProfile_AspNetUsers");
 
-                    b.Navigation("User");
+                    b.Navigation("AspNetUser");
                 });
 
             modelBuilder.Entity("ClinicAPI.Models.DoctorSchedule", b =>
@@ -1026,34 +940,32 @@ namespace ClinicAPI.Migrations
                         .HasForeignKey("AppointmentId")
                         .HasConstraintName("FK_Notification_Appointment");
 
+                    b.HasOne("ClinicAPI.Models.ApplicationUser", "AspNetUser")
+                        .WithMany()
+                        .HasForeignKey("AspNetUserId")
+                        .HasConstraintName("FK_Notification_AspNetUsers");
+
                     b.HasOne("ClinicAPI.Models.NotificationType", "NotificationType")
                         .WithMany("Notifications")
                         .HasForeignKey("NotificationTypeId")
                         .IsRequired()
                         .HasConstraintName("FK_Notification_Type");
 
-                    b.HasOne("ClinicAPI.Models.AppUser", "User")
-                        .WithMany("Notifications")
-                        .HasForeignKey("UserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_Notification_AppUser");
-
                     b.Navigation("Appointment");
 
-                    b.Navigation("NotificationType");
+                    b.Navigation("AspNetUser");
 
-                    b.Navigation("User");
+                    b.Navigation("NotificationType");
                 });
 
             modelBuilder.Entity("ClinicAPI.Models.PatientProfile", b =>
                 {
-                    b.HasOne("ClinicAPI.Models.AppUser", "User")
-                        .WithOne("PatientProfile")
-                        .HasForeignKey("ClinicAPI.Models.PatientProfile", "UserId")
-                        .IsRequired()
-                        .HasConstraintName("FK_PatientProfile_AppUser");
+                    b.HasOne("ClinicAPI.Models.ApplicationUser", "AspNetUser")
+                        .WithMany()
+                        .HasForeignKey("AspNetUserId")
+                        .HasConstraintName("FK_PatientProfile_AspNetUsers");
 
-                    b.Navigation("User");
+                    b.Navigation("AspNetUser");
                 });
 
             modelBuilder.Entity("ClinicAPI.Models.Prescription", b =>
@@ -1156,21 +1068,6 @@ namespace ClinicAPI.Migrations
                         .IsRequired();
                 });
 
-            modelBuilder.Entity("ClinicAPI.Models.AppUser", b =>
-                {
-                    b.Navigation("AppointmentStatusHistories");
-
-                    b.Navigation("Appointments");
-
-                    b.Navigation("DoctorLeaves");
-
-                    b.Navigation("DoctorProfile");
-
-                    b.Navigation("Notifications");
-
-                    b.Navigation("PatientProfile");
-                });
-
             modelBuilder.Entity("ClinicAPI.Models.Appointment", b =>
                 {
                     b.Navigation("AppointmentStatusHistories");
@@ -1230,11 +1127,6 @@ namespace ClinicAPI.Migrations
                     b.Navigation("Appointments");
 
                     b.Navigation("DoctorSpecializations");
-                });
-
-            modelBuilder.Entity("ClinicAPI.Models.UserRole", b =>
-                {
-                    b.Navigation("AppUsers");
                 });
 
             modelBuilder.Entity("ClinicAPI.Models.VisitRecord", b =>
