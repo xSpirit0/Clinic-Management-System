@@ -23,17 +23,17 @@ public partial class Appointment
 
     public string? ComplaintReason { get; set; }
 
-    public int CreatedByUserId { get; set; }
-
     public DateTime CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }
+
+    public string? CreatedByAspNetUserId { get; set; }
 
     public virtual AppointmentStatus AppointmentStatus { get; set; } = null!;
 
     public virtual ICollection<AppointmentStatusHistory> AppointmentStatusHistories { get; set; } = new List<AppointmentStatusHistory>();
 
-    public virtual AppUser CreatedByUser { get; set; } = null!;
+    public virtual AspNetUser? CreatedByAspNetUser { get; set; }
 
     public virtual DoctorProfile Doctor { get; set; } = null!;
 

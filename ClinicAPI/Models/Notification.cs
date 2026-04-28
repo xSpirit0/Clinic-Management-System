@@ -7,8 +7,6 @@ public partial class Notification
 {
     public int NotificationId { get; set; }
 
-    public int UserId { get; set; }
-
     public int NotificationTypeId { get; set; }
 
     public int? AppointmentId { get; set; }
@@ -21,9 +19,11 @@ public partial class Notification
 
     public DateTime CreatedAt { get; set; }
 
+    public string? AspNetUserId { get; set; }
+
     public virtual Appointment? Appointment { get; set; }
 
-    public virtual NotificationType NotificationType { get; set; } = null!;
+    public virtual AspNetUser? AspNetUser { get; set; }
 
-    public virtual AppUser User { get; set; } = null!;
+    public virtual NotificationType NotificationType { get; set; } = null!;
 }

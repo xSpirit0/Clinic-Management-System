@@ -7,8 +7,6 @@ public partial class PatientProfile
 {
     public int PatientId { get; set; }
 
-    public int UserId { get; set; }
-
     public string Cprnumber { get; set; } = null!;
 
     public string PatientReferenceNumber { get; set; } = null!;
@@ -23,7 +21,9 @@ public partial class PatientProfile
 
     public string? EmergencyContactPhone { get; set; }
 
+    public string? AspNetUserId { get; set; }
+
     public virtual ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
 
-    public virtual AppUser User { get; set; } = null!;
+    public virtual AspNetUser? AspNetUser { get; set; }
 }

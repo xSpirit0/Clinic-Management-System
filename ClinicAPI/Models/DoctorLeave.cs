@@ -19,11 +19,11 @@ public partial class DoctorLeave
 
     public int LeaveStatusId { get; set; }
 
-    public int? ApprovedByUserId { get; set; }
-
     public DateTime? ApprovedAt { get; set; }
 
-    public virtual AppUser? ApprovedByUser { get; set; }
+    public string? ApprovedByAspNetUserId { get; set; }
+
+    public virtual AspNetUser? ApprovedByAspNetUser { get; set; }
 
     public virtual DoctorProfile Doctor { get; set; } = null!;
 

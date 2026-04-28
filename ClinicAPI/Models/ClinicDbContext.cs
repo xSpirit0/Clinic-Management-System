@@ -1,10 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 
 namespace ClinicAPI.Models;
 
-public partial class ClinicDbContext : DbContext
+public partial class ClinicDbContext : IdentityDbContext<ApplicationUser>
 {
     public ClinicDbContext()
     {
@@ -15,13 +16,23 @@ public partial class ClinicDbContext : DbContext
     {
     }
 
-    public virtual DbSet<AppUser> AppUsers { get; set; }
-
     public virtual DbSet<Appointment> Appointments { get; set; }
 
     public virtual DbSet<AppointmentStatus> AppointmentStatuses { get; set; }
 
     public virtual DbSet<AppointmentStatusHistory> AppointmentStatusHistories { get; set; }
+
+    public virtual DbSet<AspNetRole> AspNetRoles { get; set; }
+
+    public virtual DbSet<AspNetRoleClaim> AspNetRoleClaims { get; set; }
+
+    public virtual DbSet<AspNetUser> AspNetUsers { get; set; }
+
+    public virtual DbSet<AspNetUserClaim> AspNetUserClaims { get; set; }
+
+    public virtual DbSet<AspNetUserLogin> AspNetUserLogins { get; set; }
+
+    public virtual DbSet<AspNetUserToken> AspNetUserTokens { get; set; }
 
     public virtual DbSet<DoctorLeave> DoctorLeaves { get; set; }
 
@@ -47,37 +58,11 @@ public partial class ClinicDbContext : DbContext
 
     public virtual DbSet<Specialization> Specializations { get; set; }
 
-    public virtual DbSet<UserRole> UserRoles { get; set; }
-
     public virtual DbSet<VisitRecord> VisitRecords { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.Entity<AppUser>(entity =>
-        {
-            entity.HasKey(e => e.UserId).HasName("PK__AppUser__1788CC4C4F88A0E8");
-
-            entity.ToTable("AppUser");
-
-            entity.HasIndex(e => e.Email, "UQ__AppUser__A9D105344F8BFAF3").IsUnique();
-
-            entity.HasIndex(e => e.AspNetUserId, "UX_AppUser_AspNetUserId_NotNull")
-                .IsUnique()
-                .HasFilter("([AspNetUserId] IS NOT NULL)");
-
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
-            entity.Property(e => e.Email).HasMaxLength(255);
-            entity.Property(e => e.FirstName).HasMaxLength(100);
-            entity.Property(e => e.IsActive).HasDefaultValue(true);
-            entity.Property(e => e.LastName).HasMaxLength(100);
-            entity.Property(e => e.PhoneNumber).HasMaxLength(30);
-
-            entity.HasOne(d => d.UserRole).WithMany(p => p.AppUsers)
-                .HasForeignKey(d => d.UserRoleId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_AppUser_UserRole");
-        });
-
+        base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<Appointment>(entity =>
         {
             entity.HasKey(e => e.AppointmentId).HasName("PK__Appointm__8ECDFCC234F9E7BB");
@@ -85,16 +70,16 @@ public partial class ClinicDbContext : DbContext
             entity.ToTable("Appointment");
 
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.CreatedByAspNetUserId).HasMaxLength(450);
 
             entity.HasOne(d => d.AppointmentStatus).WithMany(p => p.Appointments)
                 .HasForeignKey(d => d.AppointmentStatusId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Appointment_Status");
 
-            entity.HasOne(d => d.CreatedByUser).WithMany(p => p.Appointments)
-                .HasForeignKey(d => d.CreatedByUserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Appointment_CreatedBy");
+            entity.HasOne(d => d.CreatedByAspNetUser).WithMany(p => p.Appointments)
+                .HasForeignKey(d => d.CreatedByAspNetUserId)
+                .HasConstraintName("FK_Appointment_CreatedByAspNetUsers");
 
             entity.HasOne(d => d.Doctor).WithMany(p => p.Appointments)
                 .HasForeignKey(d => d.DoctorId)
@@ -132,6 +117,7 @@ public partial class ClinicDbContext : DbContext
             entity.ToTable("AppointmentStatusHistory");
 
             entity.Property(e => e.ChangedAt).HasDefaultValueSql("(sysdatetime())");
+            entity.Property(e => e.ChangedByAspNetUserId).HasMaxLength(450);
 
             entity.HasOne(d => d.Appointment).WithMany(p => p.AppointmentStatusHistories)
                 .HasForeignKey(d => d.AppointmentId)
@@ -143,10 +129,75 @@ public partial class ClinicDbContext : DbContext
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_StatusHistory_Status");
 
-            entity.HasOne(d => d.ChangedByUser).WithMany(p => p.AppointmentStatusHistories)
-                .HasForeignKey(d => d.ChangedByUserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_StatusHistory_ChangedBy");
+            entity.HasOne(d => d.ChangedByAspNetUser).WithMany(p => p.AppointmentStatusHistories)
+                .HasForeignKey(d => d.ChangedByAspNetUserId)
+                .HasConstraintName("FK_StatusHistory_ChangedByAspNetUsers");
+        });
+
+        modelBuilder.Entity<AspNetRole>(entity =>
+        {
+            entity.HasIndex(e => e.NormalizedName, "RoleNameIndex")
+                .IsUnique()
+                .HasFilter("([NormalizedName] IS NOT NULL)");
+
+            entity.Property(e => e.Name).HasMaxLength(256);
+            entity.Property(e => e.NormalizedName).HasMaxLength(256);
+        });
+
+        modelBuilder.Entity<AspNetRoleClaim>(entity =>
+        {
+            entity.HasIndex(e => e.RoleId, "IX_AspNetRoleClaims_RoleId");
+
+            entity.HasOne(d => d.Role).WithMany(p => p.AspNetRoleClaims).HasForeignKey(d => d.RoleId);
+        });
+
+        modelBuilder.Entity<AspNetUser>(entity =>
+        {
+            entity.HasIndex(e => e.NormalizedEmail, "EmailIndex");
+
+            entity.HasIndex(e => e.NormalizedUserName, "UserNameIndex")
+                .IsUnique()
+                .HasFilter("([NormalizedUserName] IS NOT NULL)");
+
+            entity.Property(e => e.Email).HasMaxLength(256);
+            entity.Property(e => e.NormalizedEmail).HasMaxLength(256);
+            entity.Property(e => e.NormalizedUserName).HasMaxLength(256);
+            entity.Property(e => e.UserName).HasMaxLength(256);
+
+            entity.HasMany(d => d.Roles).WithMany(p => p.Users)
+                .UsingEntity<Dictionary<string, object>>(
+                    "AspNetUserRole",
+                    r => r.HasOne<AspNetRole>().WithMany().HasForeignKey("RoleId"),
+                    l => l.HasOne<AspNetUser>().WithMany().HasForeignKey("UserId"),
+                    j =>
+                    {
+                        j.HasKey("UserId", "RoleId");
+                        j.ToTable("AspNetUserRoles");
+                        j.HasIndex(new[] { "RoleId" }, "IX_AspNetUserRoles_RoleId");
+                    });
+        });
+
+        modelBuilder.Entity<AspNetUserClaim>(entity =>
+        {
+            entity.HasIndex(e => e.UserId, "IX_AspNetUserClaims_UserId");
+
+            entity.HasOne(d => d.User).WithMany(p => p.AspNetUserClaims).HasForeignKey(d => d.UserId);
+        });
+
+        modelBuilder.Entity<AspNetUserLogin>(entity =>
+        {
+            entity.HasKey(e => new { e.LoginProvider, e.ProviderKey });
+
+            entity.HasIndex(e => e.UserId, "IX_AspNetUserLogins_UserId");
+
+            entity.HasOne(d => d.User).WithMany(p => p.AspNetUserLogins).HasForeignKey(d => d.UserId);
+        });
+
+        modelBuilder.Entity<AspNetUserToken>(entity =>
+        {
+            entity.HasKey(e => new { e.UserId, e.LoginProvider, e.Name });
+
+            entity.HasOne(d => d.User).WithMany(p => p.AspNetUserTokens).HasForeignKey(d => d.UserId);
         });
 
         modelBuilder.Entity<DoctorLeave>(entity =>
@@ -155,9 +206,11 @@ public partial class ClinicDbContext : DbContext
 
             entity.ToTable("DoctorLeave");
 
-            entity.HasOne(d => d.ApprovedByUser).WithMany(p => p.DoctorLeaves)
-                .HasForeignKey(d => d.ApprovedByUserId)
-                .HasConstraintName("FK_DoctorLeave_ApprovedBy");
+            entity.Property(e => e.ApprovedByAspNetUserId).HasMaxLength(450);
+
+            entity.HasOne(d => d.ApprovedByAspNetUser).WithMany(p => p.DoctorLeaves)
+                .HasForeignKey(d => d.ApprovedByAspNetUserId)
+                .HasConstraintName("FK_DoctorLeave_ApprovedByAspNetUsers");
 
             entity.HasOne(d => d.Doctor).WithMany(p => p.DoctorLeaves)
                 .HasForeignKey(d => d.DoctorId)
@@ -176,17 +229,15 @@ public partial class ClinicDbContext : DbContext
 
             entity.ToTable("DoctorProfile");
 
-            entity.HasIndex(e => e.UserId, "UQ__DoctorPr__1788CC4D654B8DBA").IsUnique();
-
             entity.HasIndex(e => e.LicenseNumber, "UQ__DoctorPr__E88901666FFDCB7D").IsUnique();
 
+            entity.Property(e => e.AspNetUserId).HasMaxLength(450);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             entity.Property(e => e.LicenseNumber).HasMaxLength(50);
 
-            entity.HasOne(d => d.User).WithOne(p => p.DoctorProfile)
-                .HasForeignKey<DoctorProfile>(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_DoctorProfile_AppUser");
+            entity.HasOne(d => d.AspNetUser).WithMany(p => p.DoctorProfiles)
+                .HasForeignKey(d => d.AspNetUserId)
+                .HasConstraintName("FK_DoctorProfile_AspNetUsers");
         });
 
         modelBuilder.Entity<DoctorSchedule>(entity =>
@@ -242,6 +293,7 @@ public partial class ClinicDbContext : DbContext
 
             entity.ToTable("Notification");
 
+            entity.Property(e => e.AspNetUserId).HasMaxLength(450);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql("(sysdatetime())");
             entity.Property(e => e.Title).HasMaxLength(200);
 
@@ -249,15 +301,14 @@ public partial class ClinicDbContext : DbContext
                 .HasForeignKey(d => d.AppointmentId)
                 .HasConstraintName("FK_Notification_Appointment");
 
+            entity.HasOne(d => d.AspNetUser).WithMany(p => p.Notifications)
+                .HasForeignKey(d => d.AspNetUserId)
+                .HasConstraintName("FK_Notification_AspNetUsers");
+
             entity.HasOne(d => d.NotificationType).WithMany(p => p.Notifications)
                 .HasForeignKey(d => d.NotificationTypeId)
                 .OnDelete(DeleteBehavior.ClientSetNull)
                 .HasConstraintName("FK_Notification_Type");
-
-            entity.HasOne(d => d.User).WithMany(p => p.Notifications)
-                .HasForeignKey(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_Notification_AppUser");
         });
 
         modelBuilder.Entity<NotificationType>(entity =>
@@ -277,12 +328,11 @@ public partial class ClinicDbContext : DbContext
 
             entity.ToTable("PatientProfile");
 
-            entity.HasIndex(e => e.UserId, "UQ__PatientP__1788CC4DE16D6E3D").IsUnique();
-
             entity.HasIndex(e => e.PatientReferenceNumber, "UQ__PatientP__8C7D9721B58AD64C").IsUnique();
 
             entity.HasIndex(e => e.Cprnumber, "UQ__PatientP__BD136F743CE5CFA6").IsUnique();
 
+            entity.Property(e => e.AspNetUserId).HasMaxLength(450);
             entity.Property(e => e.BloodType).HasMaxLength(10);
             entity.Property(e => e.Cprnumber)
                 .HasMaxLength(20)
@@ -292,10 +342,9 @@ public partial class ClinicDbContext : DbContext
             entity.Property(e => e.Gender).HasMaxLength(20);
             entity.Property(e => e.PatientReferenceNumber).HasMaxLength(50);
 
-            entity.HasOne(d => d.User).WithOne(p => p.PatientProfile)
-                .HasForeignKey<PatientProfile>(d => d.UserId)
-                .OnDelete(DeleteBehavior.ClientSetNull)
-                .HasConstraintName("FK_PatientProfile_AppUser");
+            entity.HasOne(d => d.AspNetUser).WithMany(p => p.PatientProfiles)
+                .HasForeignKey(d => d.AspNetUserId)
+                .HasConstraintName("FK_PatientProfile_AspNetUsers");
         });
 
         modelBuilder.Entity<Prescription>(entity =>
@@ -355,17 +404,6 @@ public partial class ClinicDbContext : DbContext
             entity.HasIndex(e => e.Name, "UQ__Speciali__737584F62ABE0C44").IsUnique();
 
             entity.Property(e => e.Name).HasMaxLength(100);
-        });
-
-        modelBuilder.Entity<UserRole>(entity =>
-        {
-            entity.HasKey(e => e.UserRoleId).HasName("PK__UserRole__3D978A3523C80348");
-
-            entity.ToTable("UserRole");
-
-            entity.HasIndex(e => e.Role, "UQ__UserRole__DA15413EC99C3B35").IsUnique();
-
-            entity.Property(e => e.Role).HasMaxLength(50);
         });
 
         modelBuilder.Entity<VisitRecord>(entity =>
