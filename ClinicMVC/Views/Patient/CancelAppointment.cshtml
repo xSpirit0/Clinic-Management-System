@@ -1,0 +1,75 @@
+@model ClinicAPI.Models.Appointment
+
+@{
+    ViewData["Title"] = "Cancel Appointment";
+}
+
+<div class="container mt-4">
+
+    <h1 class="mb-4">Cancel Appointment</h1>
+
+    <div class="alert alert-warning">
+        <strong>Are you sure?</strong> Once cancelled, this appointment cannot be restored.
+        You will need to book a new appointment if you change your mind.
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Appointment You're Cancelling</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    <small class="text-muted d-block">Date</small>
+                    <strong>@Model.ScheduledDate.ToString("dddd, dd MMMM yyyy")</strong>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <small class="text-muted d-block">Time</small>
+                    <strong>
+                        @Model.SlotStartTime.ToString("HH:mm") -
+                        @Model.SlotEndTime.ToString("HH:mm")
+                    </strong>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <small class="text-muted d-block">Doctor</small>
+                    <strong>@(Model.Doctor?.AspNetUser?.FirstName ?? "—")</strong>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <small class="text-muted d-block">Specialization</small>
+                    @* ⚠️ Assumed property: Specialization.SpecializationName *@
+                    <strong>@(Model.Specialization?.Name ?? "—")</strong>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <form asp-action="CancelAppointmentConfirmed" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" value="@Model.AppointmentId" />
+
+        <div class="card">
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="reason" class="form-label">
+                        Reason for cancellation <span class="text-muted">(optional)</span>
+                    </label>
+                    <textarea name="reason" id="reason" class="form-control" rows="3"
+                              placeholder="e.g., Schedule conflict, feeling better, etc."></textarea>
+                    <div class="form-text">
+                        Letting us know helps the clinic improve scheduling.
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2">
+                    <a asp-action="MyAppointments" class="btn btn-outline-secondary">
+                        Keep Appointment
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        Yes, Cancel Appointment
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+</div>
