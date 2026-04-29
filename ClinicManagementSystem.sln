@@ -1,11 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.37012.4 d17.14
+VisualStudioVersion = 17.14.37012.4
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClinicMVC", "ClinicMVC\ClinicMVC.csproj", "{856DC673-51E8-4327-B302-55A6970853F4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClinicAPI", "ClinicAPI\ClinicAPI.csproj", "{0CF02402-A366-4D02-A119-62E526A4775E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClinicReporting", "ClinicReporting\ClinicReporting.csproj", "{5E84A0A6-DB01-4A23-B46A-B225916600BE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{0CF02402-A366-4D02-A119-62E526A4775E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0CF02402-A366-4D02-A119-62E526A4775E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0CF02402-A366-4D02-A119-62E526A4775E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5E84A0A6-DB01-4A23-B46A-B225916600BE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5E84A0A6-DB01-4A23-B46A-B225916600BE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5E84A0A6-DB01-4A23-B46A-B225916600BE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5E84A0A6-DB01-4A23-B46A-B225916600BE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
