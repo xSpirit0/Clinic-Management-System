@@ -1,0 +1,163 @@
+@model ClinicAPI.Models.Appointment
+
+@{
+    ViewData["Title"] = "Appointment Details";
+    var status = Model.AppointmentStatus.AppointmentStatus1;
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>Appointment Details</h1>
+        <a asp-action="MyAppointments" class="btn btn-outline-secondary">← Back to List</a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Appointment #@Model.AppointmentId</h5>
+            @{
+                var badgeClass = status switch
+                {
+                    "Requested" => "bg-warning text-dark",
+                    "Confirmed" => "bg-info text-dark",
+                    "CheckedIn" => "bg-primary",
+                    "InProgress" => "bg-primary",
+                    "Completed" => "bg-success",
+                    "Cancelled" => "bg-danger",
+                    "Missed" => "bg-secondary",
+                    _ => "bg-light text-dark"
+                };
+            }
+            <span class="badge @badgeClass fs-6">@status</span>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <small class="text-muted d-block">Date</small>
+                    <strong>@Model.ScheduledDate.ToString("dddd, dd MMMM yyyy")</strong>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <small class="text-muted d-block">Time</small>
+                    <strong>
+                        @Model.SlotStartTime.ToString("HH:mm") -
+                        @Model.SlotEndTime.ToString("HH:mm")
+                    </strong>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <small class="text-muted d-block">Doctor</small>
+                    <strong>@(Model.Doctor?.AspNetUser?.FirstName ?? "—")</strong>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <small class="text-muted d-block">Specialization</small>
+                    @* ⚠️ Assumed property: Specialization.SpecializationName *@
+                    <strong>@(Model.Specialization?.Name ?? "—")</strong>
+                </div>
+                @if (!string.IsNullOrWhiteSpace(Model.ComplaintReason))
+                {
+                    <div class="col-12 mb-3">
+                        <small class="text-muted d-block">Complaint / Reason</small>
+                        <p class="mb-0">@Model.ComplaintReason</p>
+                    </div>
+                }
+                <div class="col-md-6">
+                    <small class="text-muted d-block">Booked On</small>
+                    @Model.CreatedAt.ToString("dd MMM yyyy HH:mm")
+                </div>
+                @if (Model.UpdatedAt.HasValue)
+                {
+                    <div class="col-md-6">
+                        <small class="text-muted d-block">Last Updated</small>
+                        @Model.UpdatedAt.Value.ToString("dd MMM yyyy HH:mm")
+                    </div>
+                }
+            </div>
+        </div>
+        @if (status == "Requested" || status == "Confirmed")
+        {
+            <div class="card-footer text-end">
+                <a asp-action="CancelAppointment" asp-route-id="@Model.AppointmentId"
+                   class="btn btn-danger">Cancel This Appointment</a>
+            </div>
+        }
+    </div>
+
+    @if (Model.VisitRecord != null)
+    {
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="mb-0">Visit Record</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <small class="text-muted d-block">Visit Date</small>
+                        <strong>@Model.VisitRecord.VisitDate.ToString("dd MMM yyyy HH:mm")</strong>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.VisitRecord.Diagnosis))
+                    {
+                        <div class="col-12 mb-3">
+                            <small class="text-muted d-block">Diagnosis</small>
+                            <p class="mb-0">@Model.VisitRecord.Diagnosis</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.VisitRecord.Treatment))
+                    {
+                        <div class="col-12 mb-3">
+                            <small class="text-muted d-block">Treatment</small>
+                            <p class="mb-0">@Model.VisitRecord.Treatment</p>
+                        </div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(Model.VisitRecord.DoctorNotes))
+                    {
+                        <div class="col-12">
+                            <small class="text-muted d-block">Doctor's Notes</small>
+                            <p class="mb-0">@Model.VisitRecord.DoctorNotes</p>
+                        </div>
+                    }
+                </div>
+                <div class="mt-3">
+                    <a asp-action="VisitRecordDetails" asp-route-id="@Model.VisitRecord.VisitRecordId"
+                       class="btn btn-sm btn-outline-primary">View Full Visit Record</a>
+                </div>
+            </div>
+        </div>
+
+        @if (Model.VisitRecord.Prescriptions != null && Model.VisitRecord.Prescriptions.Any())
+        {
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Prescriptions from this Visit</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var pres in Model.VisitRecord.Prescriptions)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Prescription #@pres.PrescriptionId</strong>
+                                <br />
+                                <small class="text-muted">
+                                    Issued: @pres.IssuedAt.ToString("dd MMM yyyy") |
+                                    @(pres.PrescriptionItems?.Count ?? 0) item(s)
+                                </small>
+                            </div>
+                            <a asp-action="PrescriptionDetails" asp-route-id="@pres.PrescriptionId"
+                               class="btn btn-sm btn-outline-primary">View</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    }
+    else if (status == "Completed")
+    {
+        <div class="alert alert-info">
+            This appointment is marked as completed but no visit record has been created yet.
+        </div>
+    }
+
+</div>
