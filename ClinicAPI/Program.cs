@@ -95,6 +95,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+using (var scope = app.Services.CreateScope())
+{
+
+    await SeedData.InitializeAsync(scope.ServiceProvider);
+}
+
 app.UseHttpsRedirection();
 
 app.UseAuthentication(); 
