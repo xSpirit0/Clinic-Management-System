@@ -1,0 +1,156 @@
+@model IEnumerable<ClinicAPI.Models.DoctorSchedule>
+
+@{
+    ViewData["Title"] = "My Schedule";
+    var leaves = ViewBag.Leaves as List<ClinicAPI.Models.DoctorLeave> ?? new List<ClinicAPI.Models.DoctorLeave>();
+
+    string DayName(int dow) => dow switch
+    {
+        0 => "Sunday",
+        1 => "Monday",
+        2 => "Tuesday",
+        3 => "Wednesday",
+        4 => "Thursday",
+        5 => "Friday",
+        6 => "Saturday",
+        _ => $"Day {dow}"
+    };
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="mb-1">My Schedule</h1>
+            <p class="text-muted mb-0">Your weekly working hours and upcoming leaves.</p>
+        </div>
+        <a asp-action="Dashboard" class="btn btn-link">← Dashboard</a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header"><h5 class="mb-0">Weekly Working Hours</h5></div>
+        <div class="card-body p-0">
+            @if (!Model.Any())
+            {
+                <div class="p-4 text-center text-muted">
+                    <p class="mb-0">No working hours set yet. Contact the Clinic Manager to set up your schedule.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 20%">Day</th>
+                                <th>Hours</th>
+                                <th>Slot Duration</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @* Show all 7 days; days without schedule show as "off" *@
+                            @for (int day = 0; day < 7; day++)
+                            {
+                                var schedules = Model.Where(s => s.DayOfWeek == day).ToList();
+                                <tr>
+                                    <td><strong>@DayName(day)</strong></td>
+                                    @if (!schedules.Any())
+                                    {
+                                        <td colspan="3" class="text-muted">
+                                            <em>Day off</em>
+                                        </td>
+                                    }
+                                    else
+                                    {
+                                        <td>
+                                            @foreach (var s in schedules)
+                                            {
+                                                <div>
+                                                    @s.StartTime.ToString("HH:mm") -
+                                                    @s.EndTime.ToString("HH:mm")
+                                                </div>
+                                            }
+                                        </td>
+                                        <td>
+                                            @foreach (var s in schedules)
+                                            {
+                                                <div>@s.SlotDurationMinutes minutes</div>
+                                            }
+                                        </td>
+                                        <td>
+                                            @foreach (var s in schedules)
+                                            {
+                                                if (s.IsActive)
+                                                {
+                                                    <span class="badge bg-success">Active</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                }
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h5 class="mb-0">Upcoming Approved Leaves</h5></div>
+        <div class="card-body p-0">
+            @if (!leaves.Any())
+            {
+                <div class="p-4 text-center text-muted">
+                    <p class="mb-0">No approved leaves coming up.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>From</th>
+                                <th>To</th>
+                                <th>Days</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var l in leaves)
+                            {
+                                var days = l.EndDate.DayNumber - l.StartDate.DayNumber + 1;
+                                <tr>
+                                    <td>@l.StartDate.ToString("ddd, dd MMM yyyy")</td>
+                                    <td>@l.EndDate.ToString("ddd, dd MMM yyyy")</td>
+                                    <td>@days</td>
+                                    <td>
+                                        @if (string.IsNullOrWhiteSpace(l.Reason))
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                        else
+                                        {
+                                            @l.Reason
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="alert alert-info mt-3 mb-0 small">
+        <strong>Note:</strong> Schedule and leave changes must be requested through the Clinic Manager.
+    </div>
+
+</div>
