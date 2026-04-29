@@ -1,0 +1,117 @@
+@model ClinicAPI.Models.Appointment
+
+@{
+    ViewData["Title"] = "Write Visit Record";
+    var existing = Model.VisitRecord;
+    var isEditing = existing != null;
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="mb-1">@(isEditing ? "Edit" : "Write") Visit Record</h1>
+            <p class="text-muted mb-0">
+                For @(Model.Patient?.AspNetUser?.FirstName ?? "patient") on
+                @Model.ScheduledDate.ToString("dd MMM yyyy")
+            </p>
+        </div>
+        <a asp-action="AppointmentDetails" asp-route-id="@Model.AppointmentId"
+           class="btn btn-outline-secondary">← Back</a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="card mb-3 bg-light">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-3">
+                    <small class="text-muted d-block">Patient</small>
+                    <strong>@(Model.Patient?.AspNetUser?.FirstName ?? "—") @(Model.Patient?.AspNetUser?.LastName ?? "")</strong>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted d-block">CPR</small>
+                    <strong>@(Model.Patient?.Cprnumber ?? "—")</strong>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted d-block">Specialization</small>
+                    <strong>@(Model.Specialization?.Name ?? "—")</strong>
+                </div>
+                <div class="col-md-3">
+                    <small class="text-muted d-block">Time</small>
+                    <strong>@Model.SlotStartTime.ToString("HH:mm")</strong>
+                </div>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.ComplaintReason))
+            {
+                <hr class="my-2" />
+                <small class="text-muted d-block">Patient's Complaint</small>
+                <p class="mb-0">@Model.ComplaintReason</p>
+            }
+        </div>
+    </div>
+
+    @if (isEditing)
+    {
+        <div class="alert alert-info">
+            You are editing an existing visit record from @existing!.VisitDate.ToString("dd MMM yyyy HH:mm").
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-success">
+            <strong>Saving will mark this appointment as Completed.</strong>
+            You can add prescriptions afterwards.
+        </div>
+    }
+
+    <form asp-action="WriteVisitRecord" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="appointmentId" value="@Model.AppointmentId" />
+
+        <div class="card mb-3">
+            <div class="card-body">
+
+                <div class="mb-3">
+                    <label for="diagnosis" class="form-label">
+                        <strong>Diagnosis</strong>
+                    </label>
+                    <textarea name="diagnosis" id="diagnosis"
+                              class="form-control" rows="3"
+                              placeholder="e.g., Acute viral upper respiratory infection">@(existing?.Diagnosis)</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="treatment" class="form-label">
+                        <strong>Treatment Plan</strong>
+                    </label>
+                    <textarea name="treatment" id="treatment"
+                              class="form-control" rows="3"
+                              placeholder="e.g., Rest, fluids, paracetamol for fever. Return if symptoms worsen.">@(existing?.Treatment)</textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label for="doctorNotes" class="form-label">
+                        <strong>Doctor's Notes</strong>
+                        <small class="text-muted">(optional, internal use)</small>
+                    </label>
+                    <textarea name="doctorNotes" id="doctorNotes"
+                              class="form-control" rows="4"
+                              placeholder="Vitals, examination findings, observations...">@(existing?.DoctorNotes)</textarea>
+                </div>
+
+            </div>
+            <div class="card-footer d-flex justify-content-end gap-2">
+                <a asp-action="AppointmentDetails" asp-route-id="@Model.AppointmentId"
+                   class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-success">
+                    @(isEditing ? "Update Record" : "Save & Complete Visit")
+                </button>
+            </div>
+        </div>
+    </form>
+
+</div>

@@ -1,0 +1,190 @@
+@model ClinicAPI.Models.VisitRecord
+
+@{
+    ViewData["Title"] = "Add Prescription";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="mb-1">Add Prescription</h1>
+            <p class="text-muted mb-0">
+                For @(Model.Appointment?.Patient?.AspNetUser?.FirstName ?? "patient") @(Model.Appointment?.Patient?.AspNetUser?.LastName ?? "")
+                — Visit on @Model.VisitDate.ToString("dd MMM yyyy")
+            </p>
+        </div>
+        <a asp-action="AppointmentDetails" asp-route-id="@Model.AppointmentId"
+           class="btn btn-outline-secondary">← Back</a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    @if (Model.Prescriptions != null && Model.Prescriptions.Any())
+    {
+        <div class="card mb-3 bg-light">
+            <div class="card-body">
+                <h6 class="mb-2">Existing prescriptions for this visit:</h6>
+                @foreach (var p in Model.Prescriptions)
+                {
+                    <div class="small">
+                        <strong>#@p.PrescriptionId</strong>
+                        — @(p.PrescriptionItems?.Count ?? 0) medication(s)
+                        — issued @p.IssuedAt.ToString("dd MMM yyyy")
+                        @if (p.PrescriptionItems != null && p.PrescriptionItems.Any())
+                        {
+                            <span>(@string.Join(", ", p.PrescriptionItems.Select(i => i.MedicationName)))</span>
+                        }
+                    </div>
+                }
+                <hr class="my-2" />
+                <small class="text-muted">
+                    Adding more medications below will create a <strong>new</strong> prescription
+                    (it does not modify the existing ones).
+                </small>
+            </div>
+        </div>
+    }
+
+    <form asp-action="AddPrescription" method="post" id="prescriptionForm">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="visitRecordId" value="@Model.VisitRecordId" />
+
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Medications</h5>
+                <button type="button" class="btn btn-sm btn-success" onclick="addMedicationRow()">
+                    + Add Another Medication
+                </button>
+            </div>
+            <div class="card-body" id="medicationsContainer">
+
+                <div class="medication-row border rounded p-3 mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <strong>Medication 1</strong>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                onclick="removeMedicationRow(this)" style="display:none;">
+                            Remove
+                        </button>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1">Medication Name *</label>
+                            <input type="text" name="medicationName" class="form-control" required
+                                   placeholder="e.g., Paracetamol" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Dosage *</label>
+                            <input type="text" name="dosage" class="form-control" required
+                                   placeholder="e.g., 500mg" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label small mb-1">Duration (days)</label>
+                            <input type="number" name="durationDays" class="form-control"
+                                   min="1" placeholder="e.g., 7" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1">Frequency *</label>
+                            <input type="text" name="frequency" class="form-control" required
+                                   placeholder="e.g., Every 8 hours" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small mb-1">Instructions</label>
+                            <input type="text" name="instructions" class="form-control"
+                                   placeholder="e.g., Take with food" />
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="card-footer d-flex justify-content-end gap-2">
+                <a asp-action="AppointmentDetails" asp-route-id="@Model.AppointmentId"
+                   class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-primary">
+                    Save Prescription
+                </button>
+            </div>
+        </div>
+    </form>
+
+</div>
+
+@section Scripts {
+    <script>
+        let medicationCount = 1;
+
+        function addMedicationRow() {
+            medicationCount++;
+            const container = document.getElementById('medicationsContainer');
+
+            const row = document.createElement('div');
+            row.className = 'medication-row border rounded p-3 mb-3';
+            row.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <strong>Medication ${medicationCount}</strong>
+                    <button type="button" class="btn btn-sm btn-outline-danger"
+                            onclick="removeMedicationRow(this)">
+                        Remove
+                    </button>
+                </div>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Medication Name *</label>
+                        <input type="text" name="medicationName" class="form-control" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Dosage *</label>
+                        <input type="text" name="dosage" class="form-control" required />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small mb-1">Duration (days)</label>
+                        <input type="number" name="durationDays" class="form-control" min="1" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Frequency *</label>
+                        <input type="text" name="frequency" class="form-control" required />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1">Instructions</label>
+                        <input type="text" name="instructions" class="form-control" />
+                    </div>
+                </div>
+            `;
+            container.appendChild(row);
+            updateRowNumbering();
+        }
+
+        function removeMedicationRow(button) {
+            const rows = document.querySelectorAll('.medication-row');
+            if (rows.length <= 1) {
+                alert('At least one medication is required.');
+                return;
+            }
+            button.closest('.medication-row').remove();
+            updateRowNumbering();
+        }
+
+        function updateRowNumbering() {
+            const rows = document.querySelectorAll('.medication-row');
+            rows.forEach((row, i) => {
+                row.querySelector('strong').textContent = `Medication ${i + 1}`;
+                const btn = row.querySelector('.btn-outline-danger');
+                btn.style.display = rows.length > 1 ? 'inline-block' : 'none';
+            });
+            medicationCount = rows.length;
+        }
+
+        // Form-level validation: ensure all empty rows are caught
+        document.getElementById('prescriptionForm').addEventListener('submit', function(e) {
+            const meds = document.querySelectorAll('input[name="medicationName"]');
+            const hasAtLeastOne = Array.from(meds).some(m => m.value.trim() !== '');
+            if (!hasAtLeastOne) {
+                e.preventDefault();
+                alert('Please add at least one medication.');
+            }
+        });
+    </script>
+}

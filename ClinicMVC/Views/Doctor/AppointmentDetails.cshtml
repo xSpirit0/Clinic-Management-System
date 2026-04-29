@@ -1,0 +1,363 @@
+@model ClinicAPI.Models.Appointment
+
+@{
+    ViewData["Title"] = $"Appointment #{Model.AppointmentId}";
+    var status = Model.AppointmentStatus.AppointmentStatus1;
+    var badgeClass = status switch
+    {
+        "Requested"  => "bg-warning text-dark",
+        "Confirmed"  => "bg-info text-dark",
+        "CheckedIn"  => "bg-primary",
+        "InProgress" => "bg-primary",
+        "Completed"  => "bg-success",
+        "Cancelled"  => "bg-danger",
+        "Missed"     => "bg-secondary",
+        _ => "bg-light text-dark"
+    };
+
+    // What lifecycle actions are valid from the current status?
+    var canConfirm    = status == "Requested";
+    var canCheckIn    = status == "Confirmed";
+    var canStartVisit = status == "CheckedIn";
+    var canComplete   = status == "InProgress";
+    var canCancel     = status == "Requested" || status == "Confirmed" || status == "CheckedIn";
+    var canMarkMissed = status == "Confirmed" || status == "CheckedIn";
+    var hasVisitRec   = Model.VisitRecord != null;
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="mb-1">Appointment #@Model.AppointmentId</h1>
+            <p class="text-muted mb-0">
+                @Model.ScheduledDate.ToString("dddd, dd MMMM yyyy") at
+                @Model.SlotStartTime.ToString("HH:mm")
+            </p>
+        </div>
+        <div>
+            <span class="badge @badgeClass fs-5 me-2">@status</span>
+            <a asp-action="MyAppointments" class="btn btn-outline-secondary">← Back</a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-7">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Patient Information</h5></div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-sm-6 mb-2">
+                            <small class="text-muted d-block">Name</small>
+                            <strong>@(Model.Patient?.AspNetUser?.FirstName ?? "—") @(Model.Patient?.AspNetUser?.LastName ?? "")</strong>
+                        </div>
+                        <div class="col-sm-6 mb-2">
+                            <small class="text-muted d-block">CPR Number</small>
+                            <strong>@(Model.Patient?.Cprnumber ?? "—")</strong>
+                        </div>
+                        <div class="col-sm-6 mb-2">
+                            <small class="text-muted d-block">Date of Birth</small>
+                            <strong>@(Model.Patient?.DateOfBirth.ToString("dd MMM yyyy") ?? "—")</strong>
+                        </div>
+                        <div class="col-sm-6 mb-2">
+                            <small class="text-muted d-block">Blood Type</small>
+                            <strong>@(Model.Patient?.BloodType ?? "—")</strong>
+                        </div>
+                        <div class="col-12">
+                            <a asp-action="PatientHistory" asp-route-id="@Model.PatientId"
+                               class="btn btn-sm btn-outline-info mt-2">
+                                View Full Medical History
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-5">
+            <div class="card h-100">
+                <div class="card-header"><h5 class="mb-0">Appointment Info</h5></div>
+                <div class="card-body">
+                    <div class="mb-2">
+                        <small class="text-muted d-block">Specialization</small>
+                        <strong>@(Model.Specialization?.Name ?? "—")</strong>
+                    </div>
+                    <div class="mb-2">
+                        <small class="text-muted d-block">Time Slot</small>
+                        <strong>
+                            @Model.SlotStartTime.ToString("HH:mm") -
+                            @Model.SlotEndTime.ToString("HH:mm")
+                        </strong>
+                    </div>
+                    <div>
+                        <small class="text-muted d-block">Booked On</small>
+                        @Model.CreatedAt.ToString("dd MMM yyyy HH:mm")
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ComplaintReason))
+    {
+        <div class="card mb-4 border-warning">
+            <div class="card-body">
+                <h6 class="text-warning mb-1">Patient's Complaint / Reason for Visit</h6>
+                <p class="mb-0">@Model.ComplaintReason</p>
+            </div>
+        </div>
+    }
+
+    @if (canConfirm || canCheckIn || canStartVisit || canComplete || canCancel || canMarkMissed)
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Lifecycle Actions</h5></div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">
+                    Available transitions from current status (<strong>@status</strong>):
+                </p>
+                <div class="d-flex flex-wrap gap-2">
+
+                    @if (canConfirm)
+                    {
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.AppointmentId" />
+                            <input type="hidden" name="newStatus" value="Confirmed" />
+                            <button type="submit" class="btn btn-info">
+                                Confirm Appointment
+                            </button>
+                        </form>
+                    }
+
+                    @if (canCheckIn)
+                    {
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.AppointmentId" />
+                            <input type="hidden" name="newStatus" value="CheckedIn" />
+                            <button type="submit" class="btn btn-primary">
+                                Check In Patient
+                            </button>
+                        </form>
+                    }
+
+                    @if (canStartVisit)
+                    {
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.AppointmentId" />
+                            <input type="hidden" name="newStatus" value="InProgress" />
+                            <button type="submit" class="btn btn-primary">
+                                Start Visit
+                            </button>
+                        </form>
+                    }
+
+                    @if (canComplete)
+                    {
+                        <a asp-action="WriteVisitRecord" asp-route-appointmentId="@Model.AppointmentId"
+                           class="btn btn-success">
+                            Complete Visit (Write Record)
+                        </a>
+                    }
+
+                    @if (canCancel)
+                    {
+                        <button type="button" class="btn btn-outline-danger"
+                                data-bs-toggle="modal" data-bs-target="#cancelModal">
+                            Cancel Appointment
+                        </button>
+                    }
+
+                    @if (canMarkMissed)
+                    {
+                        <form asp-action="UpdateStatus" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.AppointmentId" />
+                            <input type="hidden" name="newStatus" value="Missed" />
+                            <button type="submit" class="btn btn-outline-secondary"
+                                    onclick="return confirm('Mark this appointment as Missed?');">
+                                Mark as Missed
+                            </button>
+                        </form>
+                    }
+
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (hasVisitRec)
+    {
+        <div class="card mb-4 border-success">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">Visit Record</h5>
+                <div>
+                    <a asp-action="WriteVisitRecord" asp-route-appointmentId="@Model.AppointmentId"
+                       class="btn btn-sm btn-light">Edit</a>
+                </div>
+            </div>
+            <div class="card-body">
+                <small class="text-muted d-block mb-2">
+                    Recorded on @Model.VisitRecord!.VisitDate.ToString("dd MMM yyyy HH:mm")
+                </small>
+
+                <div class="mb-3">
+                    <small class="text-muted d-block">Diagnosis</small>
+                    <p class="mb-0">
+                        @if (string.IsNullOrWhiteSpace(Model.VisitRecord.Diagnosis))
+                        {
+                            <em class="text-muted">No diagnosis recorded</em>
+                        }
+                        else
+                        {
+                            @Model.VisitRecord.Diagnosis
+                        }
+                    </p>
+                </div>
+
+                <div class="mb-3">
+                    <small class="text-muted d-block">Treatment</small>
+                    <p class="mb-0">
+                        @if (string.IsNullOrWhiteSpace(Model.VisitRecord.Treatment))
+                        {
+                            <em class="text-muted">No treatment recorded</em>
+                        }
+                        else
+                        {
+                            @Model.VisitRecord.Treatment
+                        }
+                    </p>
+                </div>
+
+                <div class="mb-3">
+                    <small class="text-muted d-block">Doctor's Notes</small>
+                    <p class="mb-0">
+                        @if (string.IsNullOrWhiteSpace(Model.VisitRecord.DoctorNotes))
+                        {
+                            <em class="text-muted">No additional notes</em>
+                        }
+                        else
+                        {
+                            @Model.VisitRecord.DoctorNotes
+                        }
+                    </p>
+                </div>
+
+                <hr />
+                <div class="d-flex justify-content-between align-items-center">
+                    <h6 class="mb-0">Prescriptions (@(Model.VisitRecord.Prescriptions?.Count ?? 0))</h6>
+                    <a asp-action="AddPrescription" asp-route-visitRecordId="@Model.VisitRecord.VisitRecordId"
+                       class="btn btn-sm btn-success">
+                        + Add Prescription
+                    </a>
+                </div>
+
+                @if (Model.VisitRecord.Prescriptions != null && Model.VisitRecord.Prescriptions.Any())
+                {
+                    <ul class="list-group list-group-flush mt-2">
+                        @foreach (var pres in Model.VisitRecord.Prescriptions)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <strong>Prescription #@pres.PrescriptionId</strong>
+                                    <small class="text-muted">
+                                        — Issued @pres.IssuedAt.ToString("dd MMM yyyy") |
+                                        @(pres.PrescriptionItems?.Count ?? 0) medication(s)
+                                    </small>
+                                    @if (pres.PrescriptionItems != null && pres.PrescriptionItems.Any())
+                                    {
+                                        <div class="mt-1 small text-muted">
+                                            @string.Join(", ", pres.PrescriptionItems.Select(i => i.MedicationName))
+                                        </div>
+                                    }
+                                </div>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    }
+    else if (status == "InProgress" || status == "Completed")
+    {
+        <div class="alert alert-warning d-flex justify-content-between align-items-center">
+            <div>
+                <strong>No visit record yet.</strong>
+                Write notes, diagnosis, and treatment for this visit.
+            </div>
+            <a asp-action="WriteVisitRecord" asp-route-appointmentId="@Model.AppointmentId"
+               class="btn btn-warning">Write Visit Record</a>
+        </div>
+    }
+
+    @if (Model.AppointmentStatusHistories != null && Model.AppointmentStatusHistories.Any())
+    {
+        <div class="card mb-4">
+            <div class="card-header"><h5 class="mb-0">Status History</h5></div>
+            <ul class="list-group list-group-flush">
+                @foreach (var h in Model.AppointmentStatusHistories)
+                {
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>@h.AppointmentStatus.AppointmentStatus1</strong>
+                                @if (!string.IsNullOrWhiteSpace(h.Notes))
+                                {
+                                    <br /><small class="text-muted">@h.Notes</small>
+                                }
+                            </div>
+                            <small class="text-muted">@h.ChangedAt.ToString("dd MMM yyyy HH:mm")</small>
+                        </div>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+</div>
+
+<div class="modal fade" id="cancelModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form asp-action="UpdateStatus" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="id" value="@Model.AppointmentId" />
+                <input type="hidden" name="newStatus" value="Cancelled" />
+                <div class="modal-header">
+                    <h5 class="modal-title">Cancel Appointment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Please provide a reason for cancellation:</p>
+                    <textarea name="notes" class="form-control" rows="3"
+                              placeholder="e.g., Patient requested reschedule, doctor unavailable, etc."></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                        Keep Appointment
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        Confirm Cancellation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
