@@ -1,0 +1,71 @@
+@model ClinicReporting.Models.SummaryReport
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<div class="row g-4">
+    <div class="col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#0d6efd;">
+            <div class="text-muted small">Total Patients</div>
+            <div class="fs-2 fw-bold text-primary">@Model?.TotalPatients</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#198754;">
+            <div class="text-muted small">Active Doctors</div>
+            <div class="fs-2 fw-bold text-success">@Model?.ActiveDoctors / @Model?.TotalDoctors</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#ffc107;">
+            <div class="text-muted small">Today's Appointments</div>
+            <div class="fs-2 fw-bold text-warning">@Model?.TodayAppointments</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#dc3545;">
+            <div class="text-muted small">Cancelled</div>
+            <div class="fs-2 fw-bold text-danger">@Model?.CancelledAppointments</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#6f42c1;">
+            <div class="text-muted small">Total Appointments</div>
+            <div class="fs-2 fw-bold" style="color:#6f42c1;">@Model?.TotalAppointments</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#0dcaf0;">
+            <div class="text-muted small">Upcoming Appointments</div>
+            <div class="fs-2 fw-bold text-info">@Model?.UpcomingAppointments</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card p-3" style="border-left-color:#fd7e14;">
+            <div class="text-muted small">Missed Appointments</div>
+            <div class="fs-2 fw-bold" style="color:#fd7e14;">@Model?.MissedAppointments</div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card p-4">
+            <h5 class="mb-3">Quick Navigation</h5>
+            <div class="d-flex gap-3 flex-wrap">
+                <a asp-action="AppointmentStats" class="btn btn-outline-primary">
+                    <i class="bi bi-calendar-check me-1"></i> Appointment Stats
+                </a>
+                <a asp-action="CancellationRate" class="btn btn-outline-danger">
+                    <i class="bi bi-x-circle me-1"></i> Cancellation Rate
+                </a>
+                <a asp-action="DoctorUtilization" class="btn btn-outline-success">
+                    <i class="bi bi-person-badge me-1"></i> Doctor Utilization
+                </a>
+                <a asp-action="Specializations" class="btn btn-outline-info">
+                    <i class="bi bi-heart-pulse me-1"></i> Specializations
+                </a>
+            </div>
+        </div>
+    </div>
+</div>

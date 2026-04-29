@@ -1,0 +1,133 @@
+using ClinicReporting.Models;
+using Microsoft.AspNetCore.Mvc;
+using System.Net.Http.Headers;
+using System.Text.Json;
+
+namespace ClinicReporting.Controllers
+{
+    public class DashboardController : Controller
+    {
+        private readonly IHttpClientFactory _httpClientFactory;
+
+        public DashboardController(IHttpClientFactory httpClientFactory)
+        {
+            _httpClientFactory = httpClientFactory;
+        }
+
+        private HttpClient GetAuthenticatedClient()
+        {
+            var client = _httpClientFactory.CreateClient("ClinicAPI");
+            var token = HttpContext.Session.GetString("JwtToken");
+            if (!string.IsNullOrEmpty(token))
+                client.DefaultRequestHeaders.Authorization =
+                    new AuthenticationHeaderValue("Bearer", token);
+            return client;
+        }
+
+        private IActionResult? CheckAuth()
+        {
+            if (HttpContext.Session.GetString("JwtToken") == null)
+                return RedirectToAction("Login", "Auth");
+            return null;
+        }
+
+        public async Task<IActionResult> Index()
+        {
+            var auth = CheckAuth();
+            if (auth != null) return auth;
+
+            var client = GetAuthenticatedClient();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            var response = await client.GetAsync("/api/reports/summary");
+            if (!response.IsSuccessStatusCode)
+                return RedirectToAction("Login", "Auth");
+
+            var json = await response.Content.ReadAsStringAsync();
+            var summary = JsonSerializer.Deserialize<SummaryReport>(json, options);
+
+            ViewBag.FullName = HttpContext.Session.GetString("FullName");
+            return View(summary);
+        }
+
+        public async Task<IActionResult> AppointmentStats(DateOnly? from, DateOnly? to)
+        {
+            var auth = CheckAuth();
+            if (auth != null) return auth;
+
+            var client = GetAuthenticatedClient();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            var url = "/api/reports/appointments/stats";
+            if (from.HasValue || to.HasValue)
+                url += $"?from={from}&to={to}";
+
+            var response = await client.GetAsync(url);
+            var json = await response.Content.ReadAsStringAsync();
+            var report = JsonSerializer.Deserialize<AppointmentStatsReport>(json, options);
+
+            ViewBag.FullName = HttpContext.Session.GetString("FullName");
+            return View(report);
+        }
+
+        public async Task<IActionResult> CancellationRate(DateOnly? from, DateOnly? to)
+        {
+            var auth = CheckAuth();
+            if (auth != null) return auth;
+
+            var client = GetAuthenticatedClient();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            var url = "/api/reports/appointments/cancellation-rate";
+            if (from.HasValue || to.HasValue)
+                url += $"?from={from}&to={to}";
+
+            var response = await client.GetAsync(url);
+            var json = await response.Content.ReadAsStringAsync();
+            var report = JsonSerializer.Deserialize<CancellationRateReport>(json, options);
+
+            ViewBag.FullName = HttpContext.Session.GetString("FullName");
+            return View(report);
+        }
+
+        public async Task<IActionResult> DoctorUtilization(DateOnly? from, DateOnly? to)
+        {
+            var auth = CheckAuth();
+            if (auth != null) return auth;
+
+            var client = GetAuthenticatedClient();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            var url = "/api/reports/doctors/utilization";
+            if (from.HasValue || to.HasValue)
+                url += $"?from={from}&to={to}";
+
+            var response = await client.GetAsync(url);
+            var json = await response.Content.ReadAsStringAsync();
+            var report = JsonSerializer.Deserialize<DoctorUtilizationReport>(json, options);
+
+            ViewBag.FullName = HttpContext.Session.GetString("FullName");
+            return View(report);
+        }
+
+        public async Task<IActionResult> Specializations(DateOnly? from, DateOnly? to)
+        {
+            var auth = CheckAuth();
+            if (auth != null) return auth;
+
+            var client = GetAuthenticatedClient();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            var url = "/api/reports/specializations/appointments";
+            if (from.HasValue || to.HasValue)
+                url += $"?from={from}&to={to}";
+
+            var response = await client.GetAsync(url);
+            var json = await response.Content.ReadAsStringAsync();
+            var report = JsonSerializer.Deserialize<SpecializationReport>(json, options);
+
+            ViewBag.FullName = HttpContext.Session.GetString("FullName");
+            return View(report);
+        }
+    }
+}
