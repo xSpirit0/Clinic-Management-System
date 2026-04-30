@@ -1,0 +1,139 @@
+@{
+    ViewData["Title"] = "Receptionist Dashboard";
+    int totalToday = ViewBag.TotalToday ?? 0;
+    int checkedIn = ViewBag.CheckedIn ?? 0;
+    int inProgress = ViewBag.InProgress ?? 0;
+    int awaiting = ViewBag.Awaiting ?? 0;
+    int completed = ViewBag.Completed ?? 0;
+    var pending = ViewBag.PendingCheckIns as List<ClinicAPI.Models.Appointment>
+                  ?? new List<ClinicAPI.Models.Appointment>();
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">Reception Dashboard</h1>
+            <p class="text-muted mb-0">@DateTime.Today.ToString("dddd, dd MMMM yyyy")</p>
+        </div>
+        <div>
+            <a asp-action="WaitingRoomBoard" class="btn btn-outline-primary" target="_blank">
+                Open Waiting Room Board ↗
+            </a>
+            <a asp-action="SearchPatient" class="btn btn-primary">+ Book / Find Patient</a>
+        </div>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="row g-3 mb-4">
+        <div class="col-md">
+            <div class="card text-bg-primary h-100">
+                <div class="card-body text-center">
+                    <small>Today Total</small>
+                    <h2 class="mb-0">@totalToday</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card text-bg-warning h-100">
+                <div class="card-body text-center">
+                    <small>Awaiting</small>
+                    <h2 class="mb-0">@awaiting</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card text-bg-info h-100">
+                <div class="card-body text-center">
+                    <small>Checked In</small>
+                    <h2 class="mb-0">@checkedIn</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card text-bg-primary h-100">
+                <div class="card-body text-center">
+                    <small>In Progress</small>
+                    <h2 class="mb-0">@inProgress</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md">
+            <div class="card text-bg-success h-100">
+                <div class="card-body text-center">
+                    <small>Completed</small>
+                    <h2 class="mb-0">@completed</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Pending Check-Ins</h5>
+            <a asp-action="TodayAppointments" asp-route-status="Confirmed"
+               class="btn btn-sm btn-outline-secondary">View All</a>
+        </div>
+        <div class="card-body p-0">
+            @if (!pending.Any())
+            {
+                <div class="p-4 text-center text-muted">
+                    <p class="mb-0">No patients waiting to check in.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Time</th>
+                                <th>Patient</th>
+                                <th>Doctor</th>
+                                <th>Specialization</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in pending)
+                            {
+                                <tr>
+                                    <td><strong>@a.SlotStartTime.ToString("HH:mm")</strong></td>
+                                    <td>@(a.Patient?.AspNetUser?.FirstName ?? "—") @(a.Patient?.AspNetUser?.LastName ?? "—")</td>
+                                    <td>@(a.Doctor?.AspNetUser?.FirstName ?? "—") @(a.Doctor?.AspNetUser?.LastName ?? "—")</td>
+                                    <td>@(a.Specialization?.Name ?? "—")</td>
+                                    <td class="text-end">
+                                        <form asp-action="CheckIn" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@a.AppointmentId" />
+                                            <button type="submit" class="btn btn-sm btn-primary">
+                                                Check In
+                                            </button>
+                                        </form>
+                                        <a asp-action="AppointmentDetails" asp-route-id="@a.AppointmentId"
+                                           class="btn btn-sm btn-outline-secondary">View</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+
+</div>

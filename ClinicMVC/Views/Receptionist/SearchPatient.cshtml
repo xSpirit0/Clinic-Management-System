@@ -1,0 +1,95 @@
+@model IEnumerable<ClinicAPI.Models.PatientProfile>
+
+@{
+    ViewData["Title"] = "Search Patient";
+    string query = ViewBag.Query as string ?? "";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="mb-0">Search Patient</h1>
+        <a asp-action="Dashboard" class="btn btn-link">← Dashboard</a>
+    </div>
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">@TempData["Error"]</div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" asp-action="SearchPatient" class="row g-2">
+                <div class="col-md-9">
+                    <label class="form-label small mb-1">
+                        Search by CPR, reference number, or patient name
+                    </label>
+                    <input type="text" name="query" class="form-control"
+                           value="@query"
+                           placeholder="e.g., 900101234 or PAT-001 or Ahmed"
+                           autofocus />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">Search</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (string.IsNullOrWhiteSpace(query))
+    {
+        <div class="card">
+            <div class="card-body text-center p-5 text-muted">
+                <p class="mb-0">Enter a search term above to find a patient.</p>
+            </div>
+        </div>
+    }
+    else if (!Model.Any())
+    {
+        <div class="card border-warning">
+            <div class="card-body text-center p-5">
+                <h5 class="text-muted">No patients found for "@query"</h5>
+                <p class="mb-0 small">Check the spelling or try a partial CPR number.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <p class="text-muted small">@Model.Count() result(s) for "@query"</p>
+        <div class="row g-3">
+            @foreach (var p in Model)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title mb-1">@(p.AspNetUser?.FirstName ?? "Unknown") @(p.AspNetUser?.LastName ?? "Unknown")</h5>
+                            <small class="text-muted d-block mb-2">
+                                CPR: @p.Cprnumber<br />
+                                Ref: @p.PatientReferenceNumber
+                            </small>
+
+                            <div class="small mb-2">
+                                <div>DOB: @p.DateOfBirth.ToString("dd MMM yyyy")</div>
+                                @if (!string.IsNullOrWhiteSpace(p.Gender))
+                                {
+                                    <div>Gender: @p.Gender</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(p.BloodType))
+                                {
+                                    <div>Blood: @p.BloodType</div>
+                                }
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <a asp-action="BookForPatient" asp-route-patientId="@p.PatientId"
+                               class="btn btn-sm btn-primary w-100">
+                                Book Appointment
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+</div>
