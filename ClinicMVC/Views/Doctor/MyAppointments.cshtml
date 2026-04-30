@@ -1,0 +1,137 @@
+@model IEnumerable<ClinicAPI.Models.Appointment>
+
+@{
+    ViewData["Title"] = "My Appointments";
+    string currentFilter = ViewBag.CurrentFilter ?? "today";
+    string currentStatus = ViewBag.CurrentStatus ?? "all";
+    var allStatuses = ViewBag.AllStatuses as List<string> ?? new List<string>();
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="mb-0">My Appointments</h1>
+        <a asp-action="Dashboard" class="btn btn-link">← Dashboard</a>
+    </div>
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show">
+            @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show">
+            @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="card mb-3">
+        <div class="card-body">
+            <form method="get" asp-action="MyAppointments" class="row g-2 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">Date Range</label>
+                    <select name="filter" class="form-select" onchange="this.form.submit()">
+                        <option value="today"    selected="@(currentFilter == "today")">Today</option>
+                        <option value="upcoming" selected="@(currentFilter == "upcoming")">Upcoming</option>
+                        <option value="past"     selected="@(currentFilter == "past")">Past</option>
+                        <option value="all"      selected="@(currentFilter == "all")">All</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small mb-1">Status</label>
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="all" selected="@(currentStatus == "all")">All Statuses</option>
+                        @foreach (var s in allStatuses)
+                        {
+                            <option value="@s" selected="@(currentStatus == s)">@s</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4 text-end">
+                    <small class="text-muted">@Model.Count() appointment(s) found</small>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (!Model.Any())
+    {
+        <div class="card">
+            <div class="card-body text-center p-5">
+                <h5 class="text-muted">No appointments match these filters.</h5>
+                <p class="mb-0">Try changing the date range or status filter above.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Patient</th>
+                                <th>Specialization</th>
+                                <th>Reason</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var a in Model)
+                            {
+                                var status = a.AppointmentStatus.AppointmentStatus1;
+                                var badgeClass = status switch
+                                {
+                                    "Requested"  => "bg-warning text-dark",
+                                    "Confirmed"  => "bg-info text-dark",
+                                    "CheckedIn"  => "bg-primary",
+                                    "InProgress" => "bg-primary",
+                                    "Completed"  => "bg-success",
+                                    "Cancelled"  => "bg-danger",
+                                    "Missed"     => "bg-secondary",
+                                    _ => "bg-light text-dark"
+                                };
+                                <tr>
+                                    <td>@a.ScheduledDate.ToString("ddd, dd MMM yyyy")</td>
+                                    <td>
+                                        @a.SlotStartTime.ToString("HH:mm") -
+                                        @a.SlotEndTime.ToString("HH:mm")
+                                    </td>
+                                    <td>@(a.Patient?.AspNetUser?.FirstName ?? "—") @(a.Patient?.AspNetUser?.LastName ?? "")</td>
+                                    <td>@(a.Specialization?.Name ?? "—")</td>
+                                    <td>
+                                        @if (string.IsNullOrWhiteSpace(a.ComplaintReason))
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                        else
+                                        {
+                                            @(a.ComplaintReason.Length > 40
+                                                ? a.ComplaintReason.Substring(0, 40) + "..."
+                                                : a.ComplaintReason)
+                                        }
+                                    </td>
+                                    <td><span class="badge @badgeClass">@status</span></td>
+                                    <td class="text-end">
+                                        <a asp-action="AppointmentDetails"
+                                           asp-route-id="@a.AppointmentId"
+                                           class="btn btn-sm btn-outline-primary">Details</a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+
+</div>
