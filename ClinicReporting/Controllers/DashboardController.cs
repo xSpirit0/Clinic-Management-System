@@ -59,10 +59,19 @@ namespace ClinicReporting.Controllers
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
             var url = "/api/reports/appointments/stats";
-            if (from.HasValue || to.HasValue)
-                url += $"?from={from}&to={to}";
+            var queryParams = new List<string>();
+            if (from.HasValue) queryParams.Add($"from={from}");
+            if (to.HasValue) queryParams.Add($"to={to}");
+            if (queryParams.Any()) url += "?" + string.Join("&", queryParams);
 
             var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                ViewBag.Error = "Invalid date range. Please make sure 'From' is before 'To'.";
+                ViewBag.FullName = HttpContext.Session.GetString("FullName");
+                return View(new AppointmentStatsReport());
+            }
+
             var json = await response.Content.ReadAsStringAsync();
             var report = JsonSerializer.Deserialize<AppointmentStatsReport>(json, options);
 
@@ -79,10 +88,19 @@ namespace ClinicReporting.Controllers
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
             var url = "/api/reports/appointments/cancellation-rate";
-            if (from.HasValue || to.HasValue)
-                url += $"?from={from}&to={to}";
+            var queryParams = new List<string>();
+            if (from.HasValue) queryParams.Add($"from={from}");
+            if (to.HasValue) queryParams.Add($"to={to}");
+            if (queryParams.Any()) url += "?" + string.Join("&", queryParams);
 
             var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                ViewBag.Error = "Invalid date range. Please make sure 'From' is before 'To'.";
+                ViewBag.FullName = HttpContext.Session.GetString("FullName");
+                return View(new CancellationRateReport());
+            }
+
             var json = await response.Content.ReadAsStringAsync();
             var report = JsonSerializer.Deserialize<CancellationRateReport>(json, options);
 
@@ -99,10 +117,19 @@ namespace ClinicReporting.Controllers
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
             var url = "/api/reports/doctors/utilization";
-            if (from.HasValue || to.HasValue)
-                url += $"?from={from}&to={to}";
+            var queryParams = new List<string>();
+            if (from.HasValue) queryParams.Add($"from={from}");
+            if (to.HasValue) queryParams.Add($"to={to}");
+            if (queryParams.Any()) url += "?" + string.Join("&", queryParams);
 
             var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                ViewBag.Error = "Invalid date range. Please make sure 'From' is before 'To'.";
+                ViewBag.FullName = HttpContext.Session.GetString("FullName");
+                return View(new DoctorUtilizationReport());
+            }
+
             var json = await response.Content.ReadAsStringAsync();
             var report = JsonSerializer.Deserialize<DoctorUtilizationReport>(json, options);
 
@@ -119,10 +146,19 @@ namespace ClinicReporting.Controllers
             var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
             var url = "/api/reports/specializations/appointments";
-            if (from.HasValue || to.HasValue)
-                url += $"?from={from}&to={to}";
+            var queryParams = new List<string>();
+            if (from.HasValue) queryParams.Add($"from={from}");
+            if (to.HasValue) queryParams.Add($"to={to}");
+            if (queryParams.Any()) url += "?" + string.Join("&", queryParams);
 
             var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                ViewBag.Error = "Invalid date range. Please make sure 'From' is before 'To'.";
+                ViewBag.FullName = HttpContext.Session.GetString("FullName");
+                return View(new SpecializationReport());
+            }
+            
             var json = await response.Content.ReadAsStringAsync();
             var report = JsonSerializer.Deserialize<SpecializationReport>(json, options);
 
