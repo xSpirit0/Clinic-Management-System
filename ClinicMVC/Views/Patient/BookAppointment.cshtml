@@ -6,241 +6,212 @@
     var maxDate = DateTime.Today.AddMonths(3).ToString("yyyy-MM-dd");
 }
 
-<div class="container mt-4">
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
 
-    <h1 class="mb-1">Book an Appointment</h1>
-    <p class="text-muted mb-4">Follow the steps below to book an appointment.</p>
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="page-header mb-0">
+        <h1>Book an Appointment</h1>
+        <p>Follow the steps below to book your appointment</p>
+    </div>
+    <a asp-action="Dashboard" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
 
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show">
-            @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    }
+<div class="row g-4">
+    <div class="col-lg-8">
+        <form asp-action="BookAppointment" method="post" id="bookForm">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="slotStartTime" id="slotStartTime" />
+            <input type="hidden" name="slotEndTime"   id="slotEndTime" />
 
-    <form asp-action="BookAppointment" method="post" id="bookForm">
-        @Html.AntiForgeryToken()
-
-        @* hidden fields populated by the form steps *@
-        <input type="hidden" name="slotStartTime" id="slotStartTime" />
-        <input type="hidden" name="slotEndTime" id="slotEndTime" />
-
-        <div class="card mb-3">
-            <div class="card-header">
-                <strong>Step 1:</strong> Choose Specialization
-            </div>
-            <div class="card-body">
-                <select name="specializationId" id="specializationId" class="form-select" required>
-                    <option value="">-- Select a specialization --</option>
-                    @* ⚠️ Assumed: Specialization.SpecializationName *@
-                    @foreach (var s in specializations)
+            <!-- Step 1 -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">1</span> Choose Specialization
+                </div>
+                <div class="card-body">
+                    <select name="specializationId" id="specializationId" class="form-select" required>
+                        <option value="">— Select a specialization —</option>
+                        @foreach (var s in specializations)
+                        {
+                            <option value="@s.SpecializationId">@s.Name</option>
+                        }
+                    </select>
+                    @if (!specializations.Any())
                     {
-                        <option value="@s.SpecializationId">@s.Name</option>
+                        <div class="form-text text-danger">No specializations available. Please contact the clinic.</div>
                     }
-                </select>
-                @if (!specializations.Any())
+                </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="card mb-4" id="step2Card" style="display:none;">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">2</span> Choose Doctor
+                </div>
+                <div class="card-body">
+                    <select name="doctorId" id="doctorId" class="form-select" required>
+                        <option value="">— Select a doctor —</option>
+                    </select>
+                    <div id="doctorLoading" class="form-text" style="display:none;">
+                        <i class="bi bi-hourglass-split me-1"></i> Loading doctors…
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="card mb-4" id="step3Card" style="display:none;">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">3</span> Choose Date
+                </div>
+                <div class="card-body">
+                    <input type="date" name="scheduledDate" id="scheduledDate"
+                           class="form-control" min="@minDate" max="@maxDate" required />
+                    <div class="form-text">You can book up to 3 months in advance.</div>
+                </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="card mb-4" id="step4Card" style="display:none;">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">4</span> Choose Time Slot
+                </div>
+                <div class="card-body">
+                    <div id="slotsLoading" style="display:none;color:var(--text-light);font-size:14px;">
+                        <i class="bi bi-hourglass-split me-1"></i> Checking availability…
+                    </div>
+                    <div id="slotsContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;"></div>
+                    <div id="noSlotsMessage" class="alert alert-warning mb-0" style="display:none;">
+                        <i class="bi bi-calendar-x me-1"></i>
+                        No available slots for this date. The doctor may be off or fully booked.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Confirm -->
+            <div class="card mb-4" id="step5Card" style="display:none;">
+                <div class="card-header">
+                    <span class="badge bg-success me-2"><i class="bi bi-check"></i></span> Confirm Booking
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info mb-4" id="bookingSummary"></div>
+                    <div class="d-flex justify-content-end gap-2">
+                        <a asp-action="Dashboard" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-calendar-check me-1"></i> Confirm Booking
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card" style="position:sticky;top:80px;">
+            <div class="card-header"><i class="bi bi-receipt me-2"></i>Booking Summary</div>
+            <div class="card-body">
+                @foreach (var (lbl, id) in new[] {
+                    ("Specialization", "sumSpec"),
+                    ("Doctor",         "sumDoctor"),
+                    ("Date",           "sumDate"),
+                    ("Slot",           "sumSlot"),
+                })
                 {
-                    <small class="text-danger">
-                        No specializations available. Please contact the clinic.
-                    </small>
+                    <div class="d-flex justify-content-between py-2"
+                         style="border-bottom:1px solid var(--border);font-size:13px;">
+                        <span style="color:var(--text-mid);">@lbl</span>
+                        <span id="@id" style="font-weight:500;color:var(--text-light);">—</span>
+                    </div>
                 }
             </div>
         </div>
-
-        <div class="card mb-3" id="step2Card" style="display:none;">
-            <div class="card-header">
-                <strong>Step 2:</strong> Choose Doctor
-            </div>
-            <div class="card-body">
-                <select name="doctorId" id="doctorId" class="form-select" required>
-                    <option value="">-- Select a doctor --</option>
-                </select>
-                <div id="doctorLoading" class="text-muted mt-2" style="display:none;">
-                    <small>Loading doctors...</small>
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-3" id="step3Card" style="display:none;">
-            <div class="card-header">
-                <strong>Step 3:</strong> Choose Date
-            </div>
-            <div class="card-body">
-                <input type="date" name="scheduledDate" id="scheduledDate"
-                       class="form-control"
-                       min="@minDate" max="@maxDate" required />
-                <small class="form-text text-muted">
-                    You can book up to 3 months in advance.
-                </small>
-            </div>
-        </div>
-
-        <div class="card mb-3" id="step4Card" style="display:none;">
-            <div class="card-header">
-                <strong>Step 4:</strong> Choose Time Slot
-            </div>
-            <div class="card-body">
-                <div id="slotsLoading" class="text-muted" style="display:none;">
-                    <small>Checking availability...</small>
-                </div>
-                <div id="slotsContainer" class="d-flex flex-wrap gap-2"></div>
-                <div id="noSlotsMessage" class="alert alert-warning mb-0" style="display:none;">
-                    No available slots for the selected date.
-                    The doctor may be off, on leave, or fully booked. Please pick another date.
-                </div>
-            </div>
-        </div>
-
-        <div class="card mb-3" id="step5Card" style="display:none;">
-            <div class="card-body">
-                <div class="alert alert-info" id="bookingSummary"></div>
-                <div class="d-flex justify-content-end gap-2">
-                    <a asp-action="Dashboard" class="btn btn-outline-secondary">Cancel</a>
-                    <button type="submit" class="btn btn-primary">
-                        Confirm Booking
-                    </button>
-                </div>
-            </div>
-        </div>
-
-    </form>
-
+    </div>
 </div>
 
 @section Scripts {
-    <script>
-        const specSelect = document.getElementById('specializationId');
-        const doctorSelect = document.getElementById('doctorId');
-        const dateInput = document.getElementById('scheduledDate');
-        const slotsContainer = document.getElementById('slotsContainer');
-        const noSlotsMessage = document.getElementById('noSlotsMessage');
-        const doctorLoading = document.getElementById('doctorLoading');
-        const slotsLoading = document.getElementById('slotsLoading');
-        const slotStartTime = document.getElementById('slotStartTime');
-        const slotEndTime = document.getElementById('slotEndTime');
+<script>
+const specSel   = document.getElementById('specializationId');
+const docSel    = document.getElementById('doctorId');
+const dateInp   = document.getElementById('scheduledDate');
+const slotsDiv  = document.getElementById('slotsContainer');
+const noSlots   = document.getElementById('noSlotsMessage');
+const docLoad   = document.getElementById('doctorLoading');
+const slotLoad  = document.getElementById('slotsLoading');
+const startHid  = document.getElementById('slotStartTime');
+const endHid    = document.getElementById('slotEndTime');
+const step2     = document.getElementById('step2Card');
+const step3     = document.getElementById('step3Card');
+const step4     = document.getElementById('step4Card');
+const step5     = document.getElementById('step5Card');
+const sumSpec   = document.getElementById('sumSpec');
+const sumDoctor = document.getElementById('sumDoctor');
+const sumDate   = document.getElementById('sumDate');
+const sumSlot   = document.getElementById('sumSlot');
 
-        const step2 = document.getElementById('step2Card');
-        const step3 = document.getElementById('step3Card');
-        const step4 = document.getElementById('step4Card');
-        const step5 = document.getElementById('step5Card');
+function resetFrom(step) {
+    if (step <= 2) { docSel.innerHTML = '<option value="">— Select a doctor —</option>'; step2.style.display='none'; sumDoctor.textContent='—'; }
+    if (step <= 3) { dateInp.value=''; step3.style.display='none'; sumDate.textContent='—'; }
+    if (step <= 4) { slotsDiv.innerHTML=''; noSlots.style.display='none'; startHid.value=''; endHid.value=''; step4.style.display='none'; sumSlot.textContent='—'; }
+    step5.style.display='none';
+}
 
-        function resetFromStep(stepNum) {
-            if (stepNum <= 2) {
-                doctorSelect.innerHTML = '<option value="">-- Select a doctor --</option>';
-                step2.style.display = 'none';
-            }
-            if (stepNum <= 3) {
-                dateInput.value = '';
-                step3.style.display = 'none';
-            }
-            if (stepNum <= 4) {
-                slotsContainer.innerHTML = '';
-                noSlotsMessage.style.display = 'none';
-                slotStartTime.value = '';
-                slotEndTime.value = '';
-                step4.style.display = 'none';
-            }
-            step5.style.display = 'none';
-        }
+specSel.addEventListener('change', async function() {
+    resetFrom(2);
+    sumSpec.textContent = this.options[this.selectedIndex]?.text ?? '—';
+    if (!this.value) return;
+    step2.style.display=''; docLoad.style.display='';
+    try {
+        const r = await fetch(`@Url.Action("GetDoctorsBySpecialization")?specializationId=${this.value}`);
+        const docs = await r.json();
+        docLoad.style.display='none';
+        docs.forEach(d => { const o=document.createElement('option'); o.value=d.id; o.textContent=d.name; docSel.appendChild(o); });
+        if (!docs.length) docSel.innerHTML='<option value="">No doctors available</option>';
+    } catch { docLoad.style.display='none'; }
+});
 
-        // STEP 1 -> STEP 2: load doctors when specialization picked
-        specSelect.addEventListener('change', async function () {
-            resetFromStep(2);
-            const specId = this.value;
-            if (!specId) return;
+docSel.addEventListener('change', function() {
+    resetFrom(3);
+    sumDoctor.textContent = this.options[this.selectedIndex]?.text ?? '—';
+    if (this.value) step3.style.display='';
+});
 
-            step2.style.display = 'block';
-            doctorLoading.style.display = 'block';
-
-            try {
-                const res = await fetch(`@Url.Action("GetDoctorsBySpecialization")?specializationId=${specId}`);
-                const doctors = await res.json();
-                doctorLoading.style.display = 'none';
-
-                if (doctors.length === 0) {
-                    doctorSelect.innerHTML = '<option value="">No doctors available</option>';
-                    return;
-                }
-
-                doctors.forEach(d => {
-                    const opt = document.createElement('option');
-                    opt.value = d.id;
-                    opt.textContent = d.name;
-                    doctorSelect.appendChild(opt);
-                });
-            } catch (err) {
-                doctorLoading.style.display = 'none';
-                alert('Could not load doctors. Please try again.');
-            }
+dateInp.addEventListener('change', async function() {
+    resetFrom(4);
+    const d = this.value;
+    sumDate.textContent = d ? new Date(d).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    if (!docSel.value || !d) return;
+    step4.style.display=''; slotLoad.style.display='';
+    try {
+        const r = await fetch(`@Url.Action("GetAvailableSlots")?doctorId=${docSel.value}&date=${d}`);
+        const slots = await r.json();
+        slotLoad.style.display='none';
+        if (!slots.length) { noSlots.style.display=''; return; }
+        slots.forEach(slot => {
+            const btn=document.createElement('button');
+            btn.type='button'; btn.className='btn btn-outline-primary'; btn.style.fontSize='13px';
+            btn.textContent=slot.display;
+            btn.onclick=()=>{
+                slotsDiv.querySelectorAll('button').forEach(b=>{b.classList.remove('btn-primary');b.classList.add('btn-outline-primary');});
+                btn.classList.remove('btn-outline-primary'); btn.classList.add('btn-primary');
+                startHid.value=slot.startTime; endHid.value=slot.endTime;
+                sumSlot.textContent=slot.display;
+                const spec=specSel.options[specSel.selectedIndex].text;
+                const doc=docSel.options[docSel.selectedIndex].text;
+                const dt=new Date(dateInp.value).toLocaleDateString('en-GB',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+                document.getElementById('bookingSummary').innerHTML=`<strong>Confirm your booking:</strong><br>${spec} with ${doc}<br>${dt} at ${slot.display}`;
+                step5.style.display='';
+            };
+            slotsDiv.appendChild(btn);
         });
-
-        // STEP 2 -> STEP 3: show date picker when doctor picked
-        doctorSelect.addEventListener('change', function () {
-            resetFromStep(3);
-            if (this.value) {
-                step3.style.display = 'block';
-            }
-        });
-
-        // STEP 3 -> STEP 4: load slots when date picked
-        dateInput.addEventListener('change', async function () {
-            resetFromStep(4);
-            const doctorId = doctorSelect.value;
-            const date = this.value;
-            if (!doctorId || !date) return;
-
-            step4.style.display = 'block';
-            slotsLoading.style.display = 'block';
-
-            try {
-                const res = await fetch(`@Url.Action("GetAvailableSlots")?doctorId=${doctorId}&date=${date}`);
-                const slots = await res.json();
-                slotsLoading.style.display = 'none';
-
-                if (slots.length === 0) {
-                    noSlotsMessage.style.display = 'block';
-                    return;
-                }
-
-                slots.forEach(slot => {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'btn btn-outline-primary';
-                    btn.textContent = slot.display;
-                    btn.onclick = () => selectSlot(btn, slot);
-                    slotsContainer.appendChild(btn);
-                });
-            } catch (err) {
-                slotsLoading.style.display = 'none';
-                alert('Could not load available slots. Please try again.');
-            }
-        });
-
-        // STEP 4 -> STEP 5: select a slot
-        function selectSlot(button, slot) {
-            slotsContainer.querySelectorAll('button').forEach(b => {
-                b.classList.remove('btn-primary');
-                b.classList.add('btn-outline-primary');
-            });
-            button.classList.remove('btn-outline-primary');
-            button.classList.add('btn-primary');
-
-            slotStartTime.value = slot.startTime;
-            slotEndTime.value = slot.endTime;
-
-            const spec = specSelect.options[specSelect.selectedIndex].text;
-            const doc = doctorSelect.options[doctorSelect.selectedIndex].text;
-            const dateStr = new Date(dateInput.value).toLocaleDateString('en-GB', {
-                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
-            });
-
-            document.getElementById('bookingSummary').innerHTML =
-                `<strong>Confirm your booking:</strong><br>` +
-                `${spec} with ${doc}<br>` +
-                `${dateStr} at ${slot.display}`;
-
-            step5.style.display = 'block';
-        }
-    </script>
+    } catch { slotLoad.style.display='none'; }
+});
+</script>
 }

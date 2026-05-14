@@ -3,45 +3,685 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - ClinicMVC</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] - Spirit Clinic</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/ClinicMVC.styles.css" asp-append-version="true" />
+    <style>
+        :root {
+            --primary: #1a56f0;
+            --primary-dark: #1340c4;
+            --primary-light: #e8eeff;
+            --accent: #00c2b3;
+            --text-dark: #0d1b3e;
+            --text-mid: #4a5578;
+            --text-light: #8a93b0;
+            --surface: #f7f8fc;
+            --border: #e4e8f5;
+            --white: #ffffff;
+            --danger: #e53e3e;
+            --success: #16a34a;
+            --warning: #d97706;
+            --font-display: 'Sora', sans-serif;
+            --font-body: 'DM Sans', sans-serif;
+            --radius: 12px;
+            --radius-sm: 8px;
+            --shadow-sm: 0 1px 4px rgba(26,86,240,0.06);
+            --shadow: 0 4px 20px rgba(26,86,240,0.10);
+            --shadow-lg: 0 12px 40px rgba(26,86,240,0.14);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-body);
+            font-size: 15px;
+            color: var(--text-dark);
+            background: var(--surface);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        h1, h2, h3, h4, h5, h6, .navbar-brand {
+            font-family: var(--font-display);
+        }
+
+        /* ── NAVBAR ── */
+        .clinic-navbar {
+            background: var(--white);
+            border-bottom: 1px solid var(--border);
+            padding: 0 2rem;
+            height: 64px;
+            display: flex;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            box-shadow: var(--shadow-sm);
+        }
+
+            .clinic-navbar .navbar-brand {
+                font-size: 1.2rem;
+                font-weight: 700;
+                color: var(--primary);
+                letter-spacing: -0.02em;
+                text-decoration: none;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+                .clinic-navbar .navbar-brand .brand-icon {
+                    width: 32px;
+                    height: 32px;
+                    background: var(--primary);
+                    border-radius: 8px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: white;
+                    font-size: 16px;
+                }
+
+            .clinic-navbar .brand-word {
+                color: var(--text-dark);
+            }
+
+            .clinic-navbar .brand-highlight {
+                color: var(--primary);
+            }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-left: 2rem;
+        }
+
+            .nav-links a {
+                font-size: 14px;
+                font-weight: 500;
+                color: var(--text-mid);
+                text-decoration: none;
+                padding: 6px 14px;
+                border-radius: 8px;
+                transition: all 0.15s;
+            }
+
+                .nav-links a:hover, .nav-links a.active {
+                    color: var(--primary);
+                    background: var(--primary-light);
+                }
+
+        .nav-right {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .nav-user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px 5px 5px;
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-dark);
+            background: var(--white);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+            .nav-user-badge:hover {
+                border-color: var(--primary);
+            }
+
+        .nav-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .role-badge {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 8px;
+            border-radius: 99px;
+            letter-spacing: 0.03em;
+        }
+
+        .role-patient {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .role-doctor {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .role-receptionist {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .role-manager {
+            background: #f3e5f5;
+            color: #6a1b9a;
+        }
+
+        /* ── BUTTONS ── */
+        .btn-primary-clinic {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .btn-primary-clinic:hover {
+                background: var(--primary-dark);
+                color: white;
+                transform: translateY(-1px);
+                box-shadow: 0 6px 20px rgba(26,86,240,0.3);
+            }
+
+        .btn-outline-clinic {
+            background: transparent;
+            color: var(--primary);
+            border: 1.5px solid var(--primary);
+            padding: 9px 22px;
+            border-radius: var(--radius-sm);
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+            .btn-outline-clinic:hover {
+                background: var(--primary-light);
+                color: var(--primary);
+            }
+
+        /* ── OVERRIDE BOOTSTRAP BUTTONS TO USE CLINIC STYLE ── */
+        .btn-primary {
+            background: var(--primary) !important;
+            border-color: var(--primary) !important;
+            font-family: var(--font-display);
+            font-weight: 600;
+            border-radius: var(--radius-sm) !important;
+            transition: all 0.15s !important;
+        }
+
+            .btn-primary:hover {
+                background: var(--primary-dark) !important;
+                border-color: var(--primary-dark) !important;
+                transform: translateY(-1px);
+                box-shadow: 0 6px 20px rgba(26,86,240,0.25) !important;
+            }
+
+        .btn-outline-primary {
+            color: var(--primary) !important;
+            border-color: var(--primary) !important;
+            font-family: var(--font-display);
+            font-weight: 500;
+            border-radius: var(--radius-sm) !important;
+        }
+
+            .btn-outline-primary:hover {
+                background: var(--primary) !important;
+                color: white !important;
+            }
+
+        .btn-outline-secondary {
+            border-radius: var(--radius-sm) !important;
+            font-family: var(--font-display);
+            font-weight: 500;
+        }
+
+        .btn-danger {
+            border-radius: var(--radius-sm) !important;
+            font-family: var(--font-display);
+            font-weight: 600;
+        }
+
+        .btn-success {
+            border-radius: var(--radius-sm) !important;
+            font-family: var(--font-display);
+            font-weight: 600;
+        }
+
+        .btn-warning {
+            border-radius: var(--radius-sm) !important;
+            font-family: var(--font-display);
+            font-weight: 600;
+        }
+
+        .btn-info {
+            border-radius: var(--radius-sm) !important;
+            font-family: var(--font-display);
+            font-weight: 600;
+        }
+
+        /* ── CARDS ── */
+        .card {
+            border: 1px solid var(--border) !important;
+            border-radius: var(--radius) !important;
+            box-shadow: var(--shadow-sm) !important;
+            background: var(--white) !important;
+        }
+
+        .card-header {
+            background: var(--white) !important;
+            border-bottom: 1px solid var(--border) !important;
+            font-family: var(--font-display);
+            font-weight: 600;
+            padding: 1rem 1.25rem !important;
+        }
+
+        .card-footer {
+            background: var(--surface) !important;
+            border-top: 1px solid var(--border) !important;
+        }
+
+        /* ── TABLES ── */
+        .table {
+            font-size: 14px;
+        }
+
+            .table thead th {
+                font-family: var(--font-display);
+                font-size: 12px;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                color: var(--text-mid);
+                border-bottom: 2px solid var(--border) !important;
+                padding: 12px 16px;
+            }
+
+        .table-dark thead th {
+            background: var(--text-dark) !important;
+            color: rgba(255,255,255,0.85) !important;
+            border-bottom: none !important;
+        }
+
+        .table td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-color: var(--border) !important;
+            color: var(--text-dark);
+        }
+
+        .table-hover tbody tr:hover {
+            background: var(--primary-light) !important;
+        }
+
+        /* ── BADGES ── */
+        .badge {
+            font-family: var(--font-display);
+            font-size: 11px;
+            font-weight: 600;
+            padding: 4px 10px;
+            border-radius: 99px;
+            letter-spacing: 0.02em;
+        }
+
+        /* ── FORMS ── */
+        .form-control, .form-select {
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm) !important;
+            font-size: 14px;
+            color: var(--text-dark);
+            padding: 10px 14px;
+            transition: all 0.15s;
+            background: var(--white);
+        }
+
+            .form-control:focus, .form-select:focus {
+                border-color: var(--primary) !important;
+                box-shadow: 0 0 0 3px rgba(26,86,240,0.12) !important;
+            }
+
+        .form-label {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 6px;
+            font-family: var(--font-display);
+        }
+
+        /* ── ALERTS ── */
+        .alert {
+            border: none !important;
+            border-radius: var(--radius) !important;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background: #ecfdf5 !important;
+            color: #065f46 !important;
+        }
+
+        .alert-danger {
+            background: #fef2f2 !important;
+            color: #991b1b !important;
+        }
+
+        .alert-warning {
+            background: #fffbeb !important;
+            color: #92400e !important;
+        }
+
+        .alert-info {
+            background: #eff6ff !important;
+            color: #1e40af !important;
+        }
+
+        /* ── STAT CARDS ── */
+        .stat-card {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 1.25rem 1.5rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .stat-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 4px;
+                height: 100%;
+                border-radius: 4px 0 0 4px;
+            }
+
+            .stat-card.blue::before {
+                background: var(--primary);
+            }
+
+            .stat-card.green::before {
+                background: var(--success);
+            }
+
+            .stat-card.amber::before {
+                background: var(--warning);
+            }
+
+            .stat-card.teal::before {
+                background: var(--accent);
+            }
+
+            .stat-card .stat-num {
+                font-family: var(--font-display);
+                font-size: 2rem;
+                font-weight: 700;
+                line-height: 1;
+                margin-bottom: 4px;
+            }
+
+            .stat-card .stat-lbl {
+                font-size: 13px;
+                color: var(--text-mid);
+                font-weight: 500;
+            }
+
+        /* ── PAGE HEADER ── */
+        .page-header {
+            margin-bottom: 1.75rem;
+        }
+
+            .page-header h1 {
+                font-size: 1.65rem;
+                font-weight: 700;
+                color: var(--text-dark);
+                margin-bottom: 4px;
+                letter-spacing: -0.02em;
+            }
+
+            .page-header p {
+                color: var(--text-mid);
+                font-size: 14px;
+                margin: 0;
+            }
+
+        /* ── MAIN ── */
+        main {
+            flex: 1;
+            padding: 2rem 0 3rem;
+        }
+
+        /* ── FOOTER ── */
+        footer {
+            background: var(--white);
+            border-top: 1px solid var(--border);
+            padding: 1.25rem 2rem;
+            font-size: 13px;
+            color: var(--text-light);
+        }
+
+        /* ── ACCORDION ── */
+        .accordion-item {
+            border: 1px solid var(--border) !important;
+            border-radius: var(--radius) !important;
+            margin-bottom: 8px;
+            overflow: hidden;
+        }
+
+        .accordion-button {
+            font-family: var(--font-display);
+            font-weight: 500;
+            font-size: 14px;
+            background: var(--white) !important;
+            color: var(--text-dark) !important;
+        }
+
+            .accordion-button:not(.collapsed) {
+                background: var(--primary-light) !important;
+                color: var(--primary) !important;
+                box-shadow: none !important;
+            }
+
+        /* ── LIST GROUPS ── */
+        .list-group-item {
+            border-color: var(--border) !important;
+            font-size: 14px;
+        }
+
+        /* ── MODAL ── */
+        .modal-content {
+            border: none !important;
+            border-radius: var(--radius) !important;
+            box-shadow: var(--shadow-lg) !important;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border) !important;
+            font-family: var(--font-display);
+        }
+
+        /* ── MOBILE MENU ── */
+        .mobile-nav-open {
+            overflow: hidden;
+        }
+
+        @@media (max-width: 768px) {
+            .clinic-navbar {
+                padding: 0 1rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            main {
+                padding: 1rem 0 2rem;
+            }
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">ClinicMVC</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
 
-    <footer class="border-top footer text-muted">
+    <!-- ── NAVBAR ── -->
+    <nav class="clinic-navbar">
+        <a class="navbar-brand" asp-controller="Home" asp-action="Index">
+            <span class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></span>
+            <span><span class="brand-word">Spirit</span><span class="brand-highlight"> Clinic</span></span>
+        </a>
+
+        <div class="nav-links">
+            <a asp-controller="Home" asp-action="Index">Home</a>
+
+            @* Patient links *@
+            @if (User.IsInRole("Patient"))
+            {
+                <a asp-controller="Patient" asp-action="Dashboard">Dashboard</a>
+                <a asp-controller="Patient" asp-action="MyAppointments">Appointments</a>
+                <a asp-controller="Patient" asp-action="MedicalHistory">History</a>
+                <a asp-controller="Patient" asp-action="MyPrescriptions">Prescriptions</a>
+            }
+
+            @* Doctor links *@
+            @if (User.IsInRole("Doctor"))
+            {
+                <a asp-controller="Doctor" asp-action="Dashboard">Dashboard</a>
+                <a asp-controller="Doctor" asp-action="MyAppointments">Appointments</a>
+                <a asp-controller="Doctor" asp-action="MyPatients">Patients</a>
+                <a asp-controller="Doctor" asp-action="MySchedule">Schedule</a>
+            }
+
+            @* Receptionist links *@
+            @if (User.IsInRole("Receptionist"))
+            {
+                <a asp-controller="Receptionist" asp-action="Dashboard">Dashboard</a>
+                <a asp-controller="Receptionist" asp-action="AllAppointments">Appointments</a>
+                <a asp-controller="Receptionist" asp-action="SearchPatient">Patients</a>
+                <a asp-controller="Receptionist" asp-action="BookAppointment">Book</a>
+            }
+
+            @* Clinic Manager links *@
+            @if (User.IsInRole("ClinicManager"))
+            {
+                <a asp-controller="ClinicManager" asp-action="Dashboard">Dashboard</a>
+                <a asp-controller="ClinicManager" asp-action="Doctors">Doctors</a>
+                <a asp-controller="ClinicManager" asp-action="Patients">Patients</a>
+                <a asp-controller="ClinicManager" asp-action="Leaves">Leave Requests</a>
+            }
+        </div>
+
+        <div class="nav-right">
+            @if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                @* Notifications bell *@
+                @if (User.IsInRole("Patient"))
+                {
+                    <a asp-controller="Patient" asp-action="Notifications"
+                       style="color:var(--text-mid);font-size:20px;text-decoration:none;padding:4px 8px;">
+                        <i class="bi bi-bell"></i>
+                    </a>
+                }
+                @if (User.IsInRole("Doctor"))
+                {
+                    <a asp-controller="Doctor" asp-action="Notifications"
+                       style="color:var(--text-mid);font-size:20px;text-decoration:none;padding:4px 8px;">
+                        <i class="bi bi-bell"></i>
+                    </a>
+                }
+
+                @* User badge *@
+                <div class="nav-user-badge">
+                    <div class="nav-avatar">
+                        @(User.Identity.Name?.Length > 0 ? User.Identity.Name[0].ToString().ToUpper() : "U")
+                    </div>
+                    <span>@User.Identity.Name</span>
+                    @if (User.IsInRole("Patient"))
+                    {
+                        <span class="role-badge role-patient">Patient</span>
+                    }
+                    else if (User.IsInRole("Doctor"))
+                    {
+
+                        <span class="role-badge role-doctor">Doctor</span>
+                    }
+                    else if (User.IsInRole("Receptionist"))
+                    {
+
+                        <span class="role-badge role-receptionist">Reception</span>
+                    }
+                    else if (User.IsInRole("ClinicManager"))
+                    {
+
+                        <span class="role-badge role-manager">Manager</span>
+                    }
+                </div>
+
+                <form asp-controller="Account" asp-action="Logout" method="post" class="d-inline">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn-outline-clinic" style="padding:7px 16px;font-size:13px;">
+                        Sign out
+                    </button>
+                </form>
+            }
+            else
+            {
+                <a asp-controller="Account" asp-action="Login" class="btn-outline-clinic"
+                   style="padding:7px 16px;font-size:13px;">Sign in</a>
+                <a asp-controller="Account" asp-action="Register" class="btn-primary-clinic"
+                   style="padding:7px 16px;font-size:13px;">Sign up</a>
+            }
+        </div>
+    </nav>
+
+    <!-- ── MAIN CONTENT ── -->
+    <main>
         <div class="container">
-            &copy; 2026 - ClinicMVC - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            @RenderBody()
+        </div>
+    </main>
+
+    <!-- ── FOOTER ── -->
+    <footer>
+        <div class="container d-flex justify-content-between align-items-center">
+            <span>&copy; 2026 Spirit Clinic — All rights reserved.</span>
+            <span>
+                <a href="#" style="color:var(--text-light);text-decoration:none;margin-left:16px;">Privacy</a>
+                <a href="#" style="color:var(--text-light);text-decoration:none;margin-left:16px;">Terms</a>
+            </span>
         </div>
     </footer>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

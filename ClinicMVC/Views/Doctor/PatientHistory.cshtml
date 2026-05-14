@@ -1,247 +1,201 @@
 @model IEnumerable<ClinicAPI.Models.Appointment>
-
 @{
     ViewData["Title"] = "Patient History";
-    var patient = ViewBag.Patient as ClinicAPI.Models.PatientProfile;
-    var totalAppts = Model.Count();
-    var completedCount = Model.Count(a => a.AppointmentStatus.AppointmentStatus1 == "Completed");
-    var totalVisits = Model.Count(a => a.VisitRecord != null);
-    var totalPrescriptions = Model
-        .Where(a => a.VisitRecord?.Prescriptions != null)
-        .Sum(a => a.VisitRecord!.Prescriptions.Count);
+    var patient           = ViewBag.Patient as ClinicAPI.Models.PatientProfile;
+    var totalAppts        = Model.Count();
+    var completedCount    = Model.Count(a => a.AppointmentStatus.AppointmentStatus1 == "Completed");
+    var totalVisits       = Model.Count(a => a.VisitRecord != null);
+    var totalPrescriptions= Model.Where(a => a.VisitRecord?.Prescriptions != null).Sum(a => a.VisitRecord!.Prescriptions.Count);
 }
 
-<div class="container mt-4">
-
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h1 class="mb-1">@(patient?.AspNetUser?.FirstName ?? "Patient")</h1>
-            <p class="text-muted mb-0">Full medical history</p>
-        </div>
-        <a asp-action="MyPatients" class="btn btn-outline-secondary">← My Patients</a>
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
+}
 
-    @if (TempData["Error"] != null)
-    {
-        <div class="alert alert-danger">@TempData["Error"]</div>
-    }
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="page-header mb-0">
+        <h1>@(patient?.AspNetUser?.FirstName ?? "Patient") @(patient?.AspNetUser?.LastName ?? "")</h1>
+        <p>Full medical history</p>
+    </div>
+    <a asp-action="MyPatients" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> My Patients
+    </a>
+</div>
 
-    <div class="row g-3 mb-4">
-        <div class="col-md-8">
-            <div class="card h-100">
-                <div class="card-header"><h5 class="mb-0">Patient Profile</h5></div>
-                <div class="card-body">
-                    <div class="row">
-                        <div class="col-sm-6 mb-2">
-                            <small class="text-muted d-block">CPR Number</small>
-                            <strong>@(patient?.Cprnumber ?? "—")</strong>
+<div class="row g-4 mb-4">
+    <!-- Patient info -->
+    <div class="col-lg-8">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-person-vcard me-2"></i>Patient Profile</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    @foreach (var (lbl, val) in new (string, string)[] {
+                        ("CPR Number",      patient?.Cprnumber ?? "—"),
+                        ("Reference",       patient?.PatientReferenceNumber ?? "—"),
+                        ("Date of Birth",   patient?.DateOfBirth.ToString("dd MMM yyyy") ?? "—"),
+                        ("Gender",          patient?.Gender ?? "—"),
+                        ("Blood Type",      patient?.BloodType ?? "—"),
+                        ("Emergency",       string.IsNullOrWhiteSpace(patient?.EmergencyContactName) ? "—" : patient!.EmergencyContactName + (string.IsNullOrWhiteSpace(patient.EmergencyContactPhone) ? "" : $" ({patient.EmergencyContactPhone})")),
+                    })
+                    {
+                        <div class="col-sm-6">
+                            <div style="font-size:12px;color:var(--text-light);margin-bottom:2px;">@lbl</div>
+                            <div style="font-weight:500;font-size:14px;">@val</div>
                         </div>
-                        <div class="col-sm-6 mb-2">
-                            <small class="text-muted d-block">Reference Number</small>
-                            <strong>@(patient?.PatientReferenceNumber ?? "—")</strong>
-                        </div>
-                        <div class="col-sm-6 mb-2">
-                            <small class="text-muted d-block">Date of Birth</small>
-                            <strong>@(patient?.DateOfBirth.ToString("dd MMM yyyy") ?? "—")</strong>
-                        </div>
-                        <div class="col-sm-6 mb-2">
-                            <small class="text-muted d-block">Gender</small>
-                            <strong>@(patient?.Gender ?? "—")</strong>
-                        </div>
-                        <div class="col-sm-6 mb-2">
-                            <small class="text-muted d-block">Blood Type</small>
-                            <strong>@(patient?.BloodType ?? "—")</strong>
-                        </div>
-                        <div class="col-sm-6 mb-2">
-                            <small class="text-muted d-block">Emergency Contact</small>
-                            <strong>
-                                @if (string.IsNullOrWhiteSpace(patient?.EmergencyContactName))
-                                {
-                                    <span class="text-muted">—</span>
-                                }
-                                else
-                                {
-                                    @patient.EmergencyContactName
-                                    if (!string.IsNullOrWhiteSpace(patient.EmergencyContactPhone))
-                                    {
-                                        <span class="text-muted"> (@patient.EmergencyContactPhone)</span>
-                                    }
-                                }
-                            </strong>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card h-100 bg-light">
-                <div class="card-body">
-                    <h6 class="text-muted mb-3">Quick Stats</h6>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Total Appointments</span>
-                        <strong>@totalAppts</strong>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Completed Visits</span>
-                        <strong>@completedCount</strong>
-                    </div>
-                    <div class="d-flex justify-content-between mb-2">
-                        <span>Visit Records</span>
-                        <strong>@totalVisits</strong>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                        <span>Prescriptions</span>
-                        <strong>@totalPrescriptions</strong>
-                    </div>
+                    }
                 </div>
             </div>
         </div>
     </div>
 
-    <h4 class="mb-3">Appointment History</h4>
-
-    @if (!Model.Any())
-    {
-        <div class="card">
-            <div class="card-body text-center p-5">
-                <p class="mb-0 text-muted">No appointment history.</p>
-            </div>
-        </div>
-    }
-    else
-    {
-        <div class="accordion" id="historyAccordion">
-            @{ int idx = 0; }
-            @foreach (var a in Model)
-            {
-                idx++;
-                var status = a.AppointmentStatus.AppointmentStatus1;
-                var badgeClass = status switch
+    <!-- Quick stats -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header"><i class="bi bi-bar-chart me-2"></i>Quick Stats</div>
+            <div class="card-body">
+                @foreach (var (lbl, val) in new (string, int)[] {
+                    ("Total Appointments", totalAppts),
+                    ("Completed Visits",   completedCount),
+                    ("Visit Records",      totalVisits),
+                    ("Prescriptions",      totalPrescriptions),
+                })
                 {
-                    "Requested"  => "bg-warning text-dark",
-                    "Confirmed"  => "bg-info text-dark",
-                    "CheckedIn"  => "bg-primary",
-                    "InProgress" => "bg-primary",
-                    "Completed"  => "bg-success",
-                    "Cancelled"  => "bg-danger",
-                    "Missed"     => "bg-secondary",
-                    _ => "bg-light text-dark"
-                };
-                var collapseId = $"history-{idx}";
-                var hasVisitRec = a.VisitRecord != null;
+                    <div class="d-flex justify-content-between py-2"
+                         style="border-bottom:1px solid var(--border);font-size:14px;">
+                        <span style="color:var(--text-mid);">@lbl</span>
+                        <span style="font-weight:700;color:var(--primary);">@val</span>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
 
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button"
-                                data-bs-toggle="collapse" data-bs-target="#@collapseId">
-                            <div class="d-flex justify-content-between align-items-center w-100 me-3">
-                                <div>
-                                    <strong>@a.ScheduledDate.ToString("dd MMM yyyy")</strong>
-                                    <span class="text-muted ms-2">
-                                        @a.SlotStartTime.ToString("HH:mm")
-                                    </span>
-                                    <span class="ms-3">
-                                        @(a.Specialization?.Name ?? "—")
-                                    </span>
-                                    <span class="text-muted ms-2 small">
-                                        with Dr. @(a.Doctor?.AspNetUser?.FirstName ?? "—")
-                                    </span>
-                                </div>
-                                <span class="badge @badgeClass">@status</span>
+<!-- Appointment History Accordion -->
+<div class="page-header" style="margin-bottom:1rem;">
+    <h1 style="font-size:1.2rem;">Appointment History</h1>
+</div>
+
+@if (!Model.Any())
+{
+    <div class="card">
+        <div class="text-center py-5">
+            <i class="bi bi-calendar-x" style="font-size:2.5rem;color:var(--text-light);"></i>
+            <p class="mt-3" style="color:var(--text-mid);">No appointment history.</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="accordion" id="historyAccordion">
+        @{ int idx = 0; }
+        @foreach (var a in Model)
+        {
+            idx++;
+            var s = a.AppointmentStatus.AppointmentStatus1;
+            var bc = s switch {
+                "Requested"  => "bg-secondary",
+                "Confirmed"  => "bg-primary",
+                "CheckedIn"  => "bg-info",
+                "InProgress" => "bg-warning text-dark",
+                "Completed"  => "bg-success",
+                "Cancelled"  => "bg-danger",
+                "Missed"     => "bg-dark",
+                _            => "bg-secondary"
+            };
+            var collapseId  = $"history-{idx}";
+            var hasVisitRec = a.VisitRecord != null;
+
+            <div class="accordion-item">
+                <h2 class="accordion-header">
+                    <button class="accordion-button collapsed" type="button"
+                            data-bs-toggle="collapse" data-bs-target="#@collapseId">
+                        <div class="d-flex justify-content-between align-items-center w-100 me-3">
+                            <div>
+                                <span style="font-weight:700;">@a.ScheduledDate.ToString("dd MMM yyyy")</span>
+                                <span style="color:var(--text-mid);font-size:13px;margin-left:8px;">@a.SlotStartTime.ToString("HH\\:mm")</span>
+                                <span style="margin-left:12px;font-size:13px;">@(a.Specialization?.Name ?? "—")</span>
                             </div>
-                        </button>
-                    </h2>
-                    <div id="@collapseId" class="accordion-collapse collapse"
-                         data-bs-parent="#historyAccordion">
-                        <div class="accordion-body">
-                            @if (!string.IsNullOrWhiteSpace(a.ComplaintReason))
-                            {
-                                <div class="mb-3">
-                                    <small class="text-muted d-block">Patient's Complaint</small>
-                                    <p class="mb-0">@a.ComplaintReason</p>
-                                </div>
-                            }
+                            <span class="badge @bc">@s</span>
+                        </div>
+                    </button>
+                </h2>
+                <div id="@collapseId" class="accordion-collapse collapse">
+                    <div class="accordion-body">
+                        @if (!string.IsNullOrWhiteSpace(a.ComplaintReason))
+                        {
+                            <div class="mb-3">
+                                <div style="font-size:12px;color:var(--text-light);margin-bottom:4px;">Patient's Complaint</div>
+                                <p style="font-size:14px;margin:0;">@a.ComplaintReason</p>
+                            </div>
+                        }
 
-                            @if (hasVisitRec)
-                            {
-                                <div class="border-start border-success border-3 ps-3 mb-3">
-                                    <small class="text-muted d-block">Visit Record</small>
-
-                                    @if (!string.IsNullOrWhiteSpace(a.VisitRecord!.Diagnosis))
-                                    {
-                                        <div class="mt-2">
-                                            <strong>Diagnosis:</strong> @a.VisitRecord.Diagnosis
-                                        </div>
-                                    }
-                                    @if (!string.IsNullOrWhiteSpace(a.VisitRecord.Treatment))
-                                    {
-                                        <div class="mt-2">
-                                            <strong>Treatment:</strong> @a.VisitRecord.Treatment
-                                        </div>
-                                    }
-                                    @if (!string.IsNullOrWhiteSpace(a.VisitRecord.DoctorNotes))
-                                    {
-                                        <div class="mt-2">
-                                            <strong>Notes:</strong> @a.VisitRecord.DoctorNotes
-                                        </div>
-                                    }
-                                </div>
-
-                                @if (a.VisitRecord.Prescriptions != null && a.VisitRecord.Prescriptions.Any())
+                        @if (hasVisitRec)
+                        {
+                            <div style="border-left:3px solid var(--success);padding-left:1rem;margin-bottom:1rem;">
+                                <div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">Visit Record</div>
+                                @foreach (var (lbl, val) in new (string,string?)[] {
+                                    ("Diagnosis", a.VisitRecord!.Diagnosis),
+                                    ("Treatment", a.VisitRecord.Treatment),
+                                    ("Notes",     a.VisitRecord.DoctorNotes),
+                                })
                                 {
-                                    <div class="border-start border-info border-3 ps-3 mb-3">
-                                        <small class="text-muted d-block">Prescriptions</small>
-                                        @foreach (var pres in a.VisitRecord.Prescriptions)
-                                        {
-                                            <div class="mt-2">
-                                                <strong>#@pres.PrescriptionId</strong>
-                                                — @pres.IssuedAt.ToString("dd MMM yyyy")
-                                                <ul class="mb-0 mt-1">
-                                                    @if (pres.PrescriptionItems != null)
+                                    if (!string.IsNullOrWhiteSpace(val))
+                                    {
+                                        <div class="mb-2">
+                                            <span style="font-weight:600;font-size:13px;">@lbl:</span>
+                                            <span style="font-size:13px;color:var(--text-mid);"> @val</span>
+                                        </div>
+                                    }
+                                }
+                            </div>
+
+                            @if (a.VisitRecord!.Prescriptions?.Any() == true)
+                            {
+                                <div style="border-left:3px solid var(--accent);padding-left:1rem;margin-bottom:1rem;">
+                                    <div style="font-size:12px;color:var(--text-light);margin-bottom:6px;">Prescriptions</div>
+                                    @foreach (var pres in a.VisitRecord.Prescriptions)
+                                    {
+                                        <div class="mb-2">
+                                            <span style="font-weight:600;font-size:13px;">#@pres.PrescriptionId</span>
+                                            <span style="font-size:12px;color:var(--text-light);"> — @pres.IssuedAt.ToString("dd MMM yyyy")</span>
+                                            @if (pres.PrescriptionItems != null)
+                                            {
+                                                <ul style="margin:4px 0 0;padding-left:1.25rem;font-size:13px;">
+                                                    @foreach (var item in pres.PrescriptionItems)
                                                     {
-                                                        @foreach (var item in pres.PrescriptionItems)
-                                                        {
-                                                            <li>
-                                                                <strong>@item.MedicationName</strong>
-                                                                — @item.Dosage, @item.Frequency
-                                                                @if (item.DurationDays.HasValue)
-                                                                {
-                                                                    <span> for @item.DurationDays day(s)</span>
-                                                                }
-                                                                @if (!string.IsNullOrWhiteSpace(item.Instructions))
-                                                                {
-                                                                    <em class="text-muted d-block small">
-                                                                        @item.Instructions
-                                                                    </em>
-                                                                }
-                                                            </li>
-                                                        }
+                                                        <li>
+                                                            <strong>@item.MedicationName</strong> — @item.Dosage, @item.Frequency
+                                                            @if (item.DurationDays.HasValue) { <span>for @item.DurationDays day(s)</span> }
+                                                            @if (!string.IsNullOrWhiteSpace(item.Instructions))
+                                                            { <em style="color:var(--text-light);display:block;font-size:12px;">@item.Instructions</em> }
+                                                        </li>
                                                     }
                                                 </ul>
-                                            </div>
-                                        }
-                                    </div>
-                                }
+                                            }
+                                        </div>
+                                    }
+                                </div>
                             }
-                            else
-                            {
-                                <p class="text-muted mb-0">
-                                    <em>No visit record (appointment not completed)</em>
-                                </p>
-                            }
+                        }
+                        else
+                        {
+                            <p style="color:var(--text-light);font-size:13px;font-style:italic;">
+                                No visit record (appointment not completed)
+                            </p>
+                        }
 
-                            @if (a.DoctorId == 1)  @* TODO: replace with logged-in doctor check *@
-                            {
-                                <a asp-action="AppointmentDetails" asp-route-id="@a.AppointmentId"
-                                   class="btn btn-sm btn-outline-primary mt-2">
-                                    Open Appointment
-                                </a>
-                            }
-                        </div>
+                        <a asp-action="AppointmentDetails" asp-route-id="@a.AppointmentId"
+                           class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-eye me-1"></i> Open Appointment
+                        </a>
                     </div>
                 </div>
-            }
-        </div>
-    }
-
-</div>
+            </div>
+        }
+    </div>
+}

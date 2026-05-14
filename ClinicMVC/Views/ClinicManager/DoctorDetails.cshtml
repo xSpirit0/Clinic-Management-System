@@ -1,0 +1,237 @@
+@model ClinicAPI.Models.DoctorProfile
+@{
+    ViewData["Title"] = "Doctor Details";
+    var allSpecs = (ViewBag.AllSpecializations as List<ClinicAPI.Models.Specialization>)
+                   ?? new List<ClinicAPI.Models.Specialization>();
+    var assignedIds = Model.DoctorSpecializations?.Select(ds => ds.SpecializationId).ToHashSet()
+                     ?? new HashSet<int>();
+    var availableSpecs = allSpecs.Where(s => !assignedIds.Contains(s.SpecializationId)).ToList();
+
+    string DayName(int d) => d switch { 0=>"Sunday",1=>"Monday",2=>"Tuesday",3=>"Wednesday",4=>"Thursday",5=>"Friday",6=>"Saturday",_=>$"Day {d}" };
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="page-header mb-0">
+        <h1>Dr. @(Model.AspNetUser?.FirstName ?? "—") @(Model.AspNetUser?.LastName ?? "")</h1>
+        <p>License: @Model.LicenseNumber</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="ManageSchedule" asp-route-doctorId="@Model.DoctorId"
+           class="btn btn-outline-primary">
+            <i class="bi bi-calendar3 me-1"></i> Manage Schedule
+        </a>
+        <a asp-action="Doctors" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+
+        <!-- Doctor Card -->
+        <div class="card mb-3">
+            <div class="card-body text-center" style="padding:2rem 1.5rem;">
+                <div style="width:72px;height:72px;background:var(--primary-light);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:var(--primary);margin:0 auto 1rem;font-family:var(--font-display);">
+                    @(Model.AspNetUser?.FirstName?[0].ToString().ToUpper() ?? "D")
+                </div>
+                <h5 style="font-weight:700;">Dr. @(Model.AspNetUser?.FirstName) @(Model.AspNetUser?.LastName)</h5>
+                <p style="font-size:13px;color:var(--text-mid);margin-bottom:1rem;">@(Model.AspNetUser?.Email)</p>
+                <span class="badge @(Model.IsActive ? "bg-success" : "bg-secondary")" style="font-size:13px;padding:6px 14px;">
+                    @(Model.IsActive ? "Active" : "Inactive")
+                </span>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-bar-chart me-2"></i>Stats</div>
+            <div class="card-body">
+                @foreach (var (lbl, val) in new (string, object)[] {
+                    ("Total Appointments",    ViewBag.TotalAppointments),
+                    ("Completed",            ViewBag.CompletedAppointments),
+                    ("Upcoming",             ViewBag.UpcomingAppointments),
+                })
+                {
+                    <div class="d-flex justify-content-between py-2"
+                         style="border-bottom:1px solid var(--border);font-size:14px;">
+                        <span style="color:var(--text-mid);">@lbl</span>
+                        <span style="font-weight:700;color:var(--primary);">@val</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Toggle Status -->
+        <div class="card">
+            <div class="card-header"><i class="bi bi-toggles me-2"></i>Account Status</div>
+            <div class="card-body">
+                <p style="font-size:13px;color:var(--text-mid);">
+                    @if (Model.IsActive)
+                    { <span>Doctor is currently <strong>active</strong> and can receive appointments.</span> }
+                    else
+                    { <span>Doctor is currently <strong>inactive</strong>. No new appointments can be booked.</span> }
+                </p>
+                <form asp-action="ToggleDoctorStatus" method="post">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@Model.DoctorId" />
+                    <button type="submit"
+                            class="btn w-100 @(Model.IsActive ? "btn-outline-danger" : "btn-success")">
+                        <i class="bi @(Model.IsActive ? "bi-person-x" : "bi-person-check") me-1"></i>
+                        @(Model.IsActive ? "Deactivate Doctor" : "Activate Doctor")
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+
+        <!-- Biography -->
+        @if (!string.IsNullOrWhiteSpace(Model.Biography))
+        {
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-person-lines-fill me-2"></i>Biography</div>
+                <div class="card-body" style="font-size:14px;color:var(--text-mid);">@Model.Biography</div>
+            </div>
+        }
+
+        <!-- Specializations -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-award me-2"></i>Specializations</span>
+            </div>
+            <div class="card-body">
+                @if (Model.DoctorSpecializations?.Any() == true)
+                {
+                    <div class="d-flex flex-wrap gap-2 mb-3">
+                        @foreach (var ds in Model.DoctorSpecializations)
+                        {
+                            <div class="d-flex align-items-center gap-1"
+                                 style="background:var(--primary-light);border-radius:99px;padding:4px 12px 4px 14px;">
+                                <span style="font-size:13px;font-weight:500;color:var(--primary);">
+                                    @ds.Specialization?.Name
+                                </span>
+                                <form asp-action="RemoveSpecialization" method="post" class="d-inline ms-1">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+                                    <input type="hidden" name="doctorSpecializationId" value="@ds.DoctorSpecializationId" />
+                                    <button type="submit" style="background:none;border:none;color:var(--primary);cursor:pointer;padding:0;font-size:14px;line-height:1;"
+                                            title="Remove">
+                                        <i class="bi bi-x"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p style="font-size:13px;color:var(--text-light);">No specializations assigned yet.</p>
+                }
+
+                @if (availableSpecs.Any())
+                {
+                    <form asp-action="AddSpecialization" method="post" class="d-flex gap-2 mt-2">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="doctorId" value="@Model.DoctorId" />
+                        <select name="specializationId" class="form-select" style="max-width:250px;">
+                            <option value="">— Add specialization —</option>
+                            @foreach (var s in availableSpecs)
+                            {
+                                <option value="@s.SpecializationId">@s.Name</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-plus-circle me-1"></i> Add
+                        </button>
+                    </form>
+                }
+            </div>
+        </div>
+
+        <!-- Schedule preview -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-calendar3 me-2"></i>Weekly Schedule</span>
+                <a asp-action="ManageSchedule" asp-route-doctorId="@Model.DoctorId"
+                   class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil me-1"></i> Edit
+                </a>
+            </div>
+            <div class="card-body p-0">
+                @if (Model.DoctorSchedules?.Any() == true)
+                {
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead><tr><th>Day</th><th>Hours</th><th>Slot</th><th>Status</th></tr></thead>
+                            <tbody>
+                                @foreach (var s in Model.DoctorSchedules.OrderBy(s => s.DayOfWeek))
+                                {
+                                    <tr>
+                                        <td style="font-weight:600;font-size:13px;">@DayName(s.DayOfWeek)</td>
+                                        <td style="font-size:13px;">@s.StartTime.ToString("HH\\:mm") – @s.EndTime.ToString("HH\\:mm")</td>
+                                        <td style="font-size:13px;">@s.SlotDurationMinutes min</td>
+                                        <td><span class="badge @(s.IsActive ? "bg-success" : "bg-secondary")">@(s.IsActive ? "Active" : "Off")</span></td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-4" style="color:var(--text-light);font-size:13px;">
+                        No schedule set. <a asp-action="ManageSchedule" asp-route-doctorId="@Model.DoctorId">Set up schedule →</a>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Upcoming Leaves -->
+        @if (Model.DoctorLeaves?.Any() == true)
+        {
+            <div class="card">
+                <div class="card-header"><i class="bi bi-calendar-minus me-2"></i>Leave Requests</div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table mb-0">
+                            <thead><tr><th>From</th><th>To</th><th>Status</th><th>Reason</th></tr></thead>
+                            <tbody>
+                                @foreach (var l in Model.DoctorLeaves.OrderByDescending(l => l.StartDate))
+                                {
+                                    var lbc = l.LeaveStatus?.LeaveStatus1 switch {
+                                        "Approved" => "bg-success",
+                                        "Rejected" => "bg-danger",
+                                        _          => "bg-warning text-dark"
+                                    };
+                                    <tr>
+                                        <td style="font-size:13px;">@l.StartDate.ToString("dd MMM yyyy")</td>
+                                        <td style="font-size:13px;">@l.EndDate.ToString("dd MMM yyyy")</td>
+                                        <td><span class="badge @lbc">@l.LeaveStatus?.LeaveStatus1</span></td>
+                                        <td style="font-size:13px;color:var(--text-mid);">@(l.Reason ?? "—")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+</div>
