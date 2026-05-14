@@ -64,4 +64,22 @@ namespace ClinicReporting.Models
         public DateOnly? To { get; set; }
         public List<SpecializationAppointmentItem> Specializations { get; set; } = new();
     }
+
+    public class MissedAppointmentItem
+    {
+        public int AppointmentId { get; set; }
+        public DateOnly ScheduledDate { get; set; }
+        public TimeOnly SlotStartTime { get; set; }
+        public TimeOnly SlotEndTime { get; set; }
+        public string DoctorName { get; set; } = "";
+        public string Specialization { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
+
+    public class MissedAppointmentsReport
+    {
+        public DateOnly? From { get; set; }
+        public DateOnly? To { get; set; }
+        public List<MissedAppointmentItem> MissedAppointments { get; set; } = new();
+    }
 }

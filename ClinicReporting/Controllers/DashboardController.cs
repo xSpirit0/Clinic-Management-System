@@ -158,9 +158,38 @@ namespace ClinicReporting.Controllers
                 ViewBag.FullName = HttpContext.Session.GetString("FullName");
                 return View(new SpecializationReport());
             }
-            
+
             var json = await response.Content.ReadAsStringAsync();
             var report = JsonSerializer.Deserialize<SpecializationReport>(json, options);
+
+            ViewBag.FullName = HttpContext.Session.GetString("FullName");
+            return View(report);
+        }
+
+        public async Task<IActionResult> MissedAppointments(DateOnly? from, DateOnly? to)
+        {
+            var auth = CheckAuth();
+            if (auth != null) return auth;
+
+            var client = GetAuthenticatedClient();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            var url = "/api/reports/appointments/missed";
+            var queryParams = new List<string>();
+            if (from.HasValue) queryParams.Add($"from={from}");
+            if (to.HasValue) queryParams.Add($"to={to}");
+            if (queryParams.Any()) url += "?" + string.Join("&", queryParams);
+
+            var response = await client.GetAsync(url);
+            if (!response.IsSuccessStatusCode)
+            {
+                ViewBag.Error = "Invalid date range.";
+                ViewBag.FullName = HttpContext.Session.GetString("FullName");
+                return View(new MissedAppointmentsReport());
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var report = JsonSerializer.Deserialize<MissedAppointmentsReport>(json, options);
 
             ViewBag.FullName = HttpContext.Session.GetString("FullName");
             return View(report);

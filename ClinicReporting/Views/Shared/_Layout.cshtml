@@ -46,7 +46,7 @@
     </style>
 </head>
 <body>
-      @if (Context.Session.GetString("JwtToken") != null)
+    @if (Context.Session.GetString("JwtToken") != null)
     {
         <div class="sidebar">
             <div class="brand">
@@ -60,6 +60,9 @@
             </a>
             <a asp-controller="Dashboard" asp-action="CancellationRate">
                 <i class="bi bi-x-circle me-2"></i> Cancellation Rate
+            </a>
+            <a asp-controller="Dashboard" asp-action="MissedAppointments">
+                <i class="bi bi-calendar-x me-2"></i> Missed Appointments
             </a>
             <a asp-controller="Dashboard" asp-action="DoctorUtilization">
                 <i class="bi bi-person-badge me-2"></i> Doctor Utilization
