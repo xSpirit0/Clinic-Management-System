@@ -30,7 +30,7 @@ A web-based clinic management platform that replaces paper-based scheduling with
 
 | Layer | Technology |
 |---|---|
-| Backend | ASP.NET Core 8, EF Core 8, ASP.NET Core Identity |
+| Backend | ASP.NET Core 9, EF Core 9, ASP.NET Core Identity |
 | Database | SQL Server / Azure SQL |
 | Authentication | JWT Bearer (API), Cookie Auth (MVC) |
 | Frontend | Bootstrap 5, Bootstrap Icons, Chart.js |
