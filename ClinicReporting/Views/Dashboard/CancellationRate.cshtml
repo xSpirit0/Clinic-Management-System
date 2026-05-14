@@ -1,0 +1,62 @@
+@model ClinicReporting.Models.CancellationRateReport
+@{
+    ViewData["Title"] = "Cancellation Rate";
+}
+
+<div class="card p-4 mb-4">
+    <h5 class="mb-3">Filter by Date Range</h5>
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">From</label>
+            <input type="date" name="from" class="form-control" value="@Model?.From" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">To</label>
+            <input type="date" name="to" class="form-control" value="@Model?.To" />
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+        </div>
+    </form>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card p-4 text-center">
+            <div class="text-muted small">Total Appointments</div>
+            <div class="fs-1 fw-bold text-primary">@Model?.TotalAppointments</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4 text-center">
+            <div class="text-muted small">Cancelled</div>
+            <div class="fs-1 fw-bold text-danger">@Model?.CancelledAppointments</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card p-4 text-center">
+            <div class="text-muted small">Cancellation Rate</div>
+            <div class="fs-1 fw-bold text-warning">@Model?.CancellationRatePercentage%</div>
+        </div>
+    </div>
+</div>
+
+<div class="card p-4 mt-4">
+    <h5 class="mb-3">Overview</h5>
+    <canvas id="cancelChart" height="100" style="max-height: 300px;"></canvas>
+</div>
+
+@section Scripts {
+    <script>
+    new Chart(document.getElementById('cancelChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Cancelled', 'Others'],
+            datasets: [{
+                data: [@Model?.CancelledAppointments, @((Model?.TotalAppointments ?? 0) - (Model?.CancelledAppointments ?? 0))],
+                backgroundColor: ['#dc3545', '#0d6efd']
+            }]
+        }
+    });
+    </script>
+}

@@ -1,0 +1,54 @@
+@model ClinicReporting.Models.AppointmentStatsReport
+@{
+    ViewData["Title"] = "Appointment Statistics";
+}
+
+<div class="card p-4 mb-4">
+    <h5 class="mb-3">Filter by Date Range</h5>
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">From</label>
+            <input type="date" name="from" class="form-control" value="@Model?.From" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">To</label>
+            <input type="date" name="to" class="form-control" value="@Model?.To" />
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+        </div>
+    </form>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="card p-4 text-center">
+            <div class="text-muted small">Total Appointments</div>
+            <div class="fs-1 fw-bold text-primary">@Model?.TotalAppointments</div>
+        </div>
+    </div>
+</div>
+
+<div class="card p-4 mt-4">
+    <h5 class="mb-3">Appointments by Status</h5>
+    <canvas id="statsChart" height="100"></canvas>
+</div>
+
+@section Scripts {
+<script>
+    const labels = [@Html.Raw(string.Join(",", Model?.ByStatus.Select(x => $"\"{x.Status}\"") ?? new List<string>()))];
+    const data = [@Html.Raw(string.Join(",", Model?.ByStatus.Select(x => x.Count) ?? new List<int>()))];
+    new Chart(document.getElementById('statsChart'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Appointments',
+                data,
+                backgroundColor: ['#0d6efd','#198754','#ffc107','#dc3545','#6f42c1','#0dcaf0']
+            }]
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
+    });
+</script>
+}

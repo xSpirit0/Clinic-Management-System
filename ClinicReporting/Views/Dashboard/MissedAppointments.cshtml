@@ -1,0 +1,65 @@
+﻿@model ClinicReporting.Models.MissedAppointmentsReport
+@{
+    ViewData["Title"] = "Missed Appointments";
+}
+
+<div class="card p-4 mb-4">
+    <h5 class="mb-3">Filter by Date Range</h5>
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">From</label>
+            <input type="date" name="from" class="form-control" value="@Model?.From" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">To</label>
+            <input type="date" name="to" class="form-control" value="@Model?.To" />
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+        </div>
+    </form>
+</div>
+
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger">@ViewBag.Error</div>
+}
+
+<div class="card p-4">
+    <h5 class="mb-3">
+        Missed Appointments
+        <span class="badge bg-danger ms-2">@(Model?.MissedAppointments?.Count ?? 0)</span>
+    </h5>
+    @if (Model?.MissedAppointments == null || !Model.MissedAppointments.Any())
+    {
+        <div class="text-muted text-center py-4">No missed appointments found.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Doctor</th>
+                        <th>Specialization</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var a in Model.MissedAppointments)
+                    {
+                        <tr>
+                            <td>#@a.AppointmentId</td>
+                            <td>@a.ScheduledDate</td>
+                            <td>@a.SlotStartTime - @a.SlotEndTime</td>
+                            <td>@a.DoctorName</td>
+                            <td>@a.Specialization</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

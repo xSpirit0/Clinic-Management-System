@@ -1,0 +1,50 @@
+﻿@model ClinicReporting.Models.DoctorUtilizationReport
+@{
+    ViewData["Title"] = "Doctor Utilization";
+}
+
+<div class="card p-4 mb-4">
+    <h5 class="mb-3">Filter by Date Range</h5>
+    <form method="get" class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">From</label>
+            <input type="date" name="from" class="form-control" value="@Model?.From" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">To</label>
+            <input type="date" name="to" class="form-control" value="@Model?.To" />
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
+        </div>
+    </form>
+</div>
+
+<div class="card p-4">
+    <h5 class="mb-3">Doctor Workload</h5>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>Doctor</th>
+                    <th>Total</th>
+                    <th>Completed</th>
+                    <th>Cancelled</th>
+                    <th>Missed</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var d in Model?.Doctors ?? new())
+                {
+                    <tr>
+                        <td>@d.DoctorName</td>
+                        <td><span class="badge bg-primary">@d.TotalAppointments</span></td>
+                        <td><span class="badge bg-success">@d.CompletedAppointments</span></td>
+                        <td><span class="badge bg-danger">@d.CancelledAppointments</span></td>
+                        <td><span class="badge bg-warning text-dark">@d.MissedAppointments</span></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
