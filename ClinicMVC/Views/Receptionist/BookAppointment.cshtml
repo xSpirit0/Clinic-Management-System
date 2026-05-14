@@ -1,0 +1,296 @@
+@{
+    ViewData["Title"] = "Book Appointment";
+    var specializations = ViewBag.Specializations as List<ClinicAPI.Models.Specialization>
+                          ?? new List<ClinicAPI.Models.Specialization>();
+    var selectedPatient = ViewBag.SelectedPatient as ClinicAPI.Models.PatientProfile;
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="page-header mb-0">
+        <h1>Book Appointment</h1>
+        <p>Book an appointment on behalf of a patient</p>
+    </div>
+    <a asp-action="SearchPatient" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i> Back
+    </a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        <form asp-action="BookAppointment" method="post" id="bookingForm">
+            @Html.AntiForgeryToken()
+
+            <!-- Step 1: Patient -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">1</span> Select Patient
+                </div>
+                <div class="card-body">
+                    @if (selectedPatient != null)
+                    {
+                        <input type="hidden" name="patientId" value="@selectedPatient.PatientId" />
+                        <div style="background:var(--primary-light);border:1.5px solid var(--primary);border-radius:var(--radius-sm);padding:1rem;display:flex;align-items:center;gap:12px;">
+                            <div style="width:40px;height:40px;background:var(--primary);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:16px;flex-shrink:0;">
+                                @(selectedPatient.AspNetUser?.FirstName?[0].ToString().ToUpper() ?? "P")
+                            </div>
+                            <div>
+                                <div style="font-weight:700;">
+                                    @selectedPatient.AspNetUser?.FirstName @selectedPatient.AspNetUser?.LastName
+                                </div>
+                                <div style="font-size:12px;color:var(--text-mid);">
+                                    CPR: @selectedPatient.Cprnumber · Ref: @selectedPatient.PatientReferenceNumber
+                                </div>
+                            </div>
+                            <a asp-action="SearchPatient" class="btn btn-sm btn-outline-primary ms-auto">
+                                Change
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Patient ID</label>
+                            <input type="number" name="patientId" class="form-control"
+                                   placeholder="Enter patient ID or search first" required>
+                            <div class="form-text">
+                                <a asp-action="SearchPatient">Search for a patient</a> to pre-fill this field.
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Step 2: Specialization -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">2</span> Select Specialization
+                </div>
+                <div class="card-body">
+                    <select id="specializationSelect" name="specializationId" class="form-select" required>
+                        <option value="">— Choose a specialization —</option>
+                        @foreach (var s in specializations)
+                        {
+                            <option value="@s.SpecializationId">@s.Name</option>
+                        }
+                    </select>
+                </div>
+            </div>
+
+            <!-- Step 3: Doctor -->
+            <div class="card mb-4" id="doctorCard" style="display:none;">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">3</span> Select Doctor
+                </div>
+                <div class="card-body">
+                    <select id="doctorSelect" name="doctorId" class="form-select" required disabled>
+                        <option value="">— Loading doctors… —</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Step 4: Date -->
+            <div class="card mb-4" id="dateCard" style="display:none;">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">4</span> Select Date
+                </div>
+                <div class="card-body">
+                    <input type="date" id="dateInput" name="scheduledDate" class="form-control"
+                           min="@DateTime.Today.ToString("yyyy-MM-dd")" required disabled>
+                </div>
+            </div>
+
+            <!-- Step 5: Slot -->
+            <div class="card mb-4" id="slotCard" style="display:none;">
+                <div class="card-header">
+                    <span class="badge bg-primary me-2">5</span> Select Time Slot
+                </div>
+                <div class="card-body">
+                    <div id="slotsContainer">
+                        <p style="color:var(--text-light);font-size:14px;">
+                            <i class="bi bi-info-circle me-1"></i> Select a date first
+                        </p>
+                    </div>
+                    <input type="hidden" id="slotStartTime" name="slotStartTime" required>
+                    <input type="hidden" id="slotEndTime"   name="slotEndTime"   required>
+                </div>
+            </div>
+
+            <!-- Step 6: Reason -->
+            <div class="card mb-4" id="reasonCard" style="display:none;">
+                <div class="card-header">
+                    <span class="badge bg-secondary me-2">6</span> Complaint / Reason
+                    <span class="text-muted fw-normal" style="font-size:12px;"> (optional)</span>
+                </div>
+                <div class="card-body">
+                    <textarea name="complaintReason" class="form-control" rows="3"
+                              placeholder="Describe the patient's complaint or reason for visit…"></textarea>
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn btn-primary btn-lg w-100" disabled>
+                <i class="bi bi-calendar-check me-2"></i> Confirm Booking
+            </button>
+        </form>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="col-lg-4">
+        <div class="card" style="position:sticky;top:80px;">
+            <div class="card-header"><i class="bi bi-receipt me-2"></i>Booking Summary</div>
+            <div class="card-body">
+                <div id="summaryContent">
+                    @foreach (var (label, id) in new[] {
+                        ("Patient",        "summaryPatient"),
+                        ("Specialization", "summarySpec"),
+                        ("Doctor",         "summaryDoctor"),
+                        ("Date",           "summaryDate"),
+                        ("Slot",           "summarySlot"),
+                    })
+                    {
+                        <div class="d-flex justify-content-between py-2"
+                             style="border-bottom:1px solid var(--border);font-size:13px;">
+                            <span style="color:var(--text-mid);">@label</span>
+                            <span id="@id" style="font-weight:500;color:var(--text-light);">—</span>
+                        </div>
+                    }
+                </div>
+                <div class="mt-3 p-3" style="background:var(--primary-light);border-radius:var(--radius-sm);font-size:12px;color:var(--primary);">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Receptionist bookings start as <strong>Confirmed</strong>.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const specSelect   = document.getElementById('specializationSelect');
+const doctorSelect = document.getElementById('doctorSelect');
+const dateInput    = document.getElementById('dateInput');
+const doctorCard   = document.getElementById('doctorCard');
+const dateCard     = document.getElementById('dateCard');
+const slotCard     = document.getElementById('slotCard');
+const reasonCard   = document.getElementById('reasonCard');
+const slotsDiv     = document.getElementById('slotsContainer');
+const submitBtn    = document.getElementById('submitBtn');
+const startHidden  = document.getElementById('slotStartTime');
+const endHidden    = document.getElementById('slotEndTime');
+
+// Summary elements
+const sumPatient = document.getElementById('summaryPatient');
+const sumSpec    = document.getElementById('summarySpec');
+const sumDoctor  = document.getElementById('summaryDoctor');
+const sumDate    = document.getElementById('summaryDate');
+const sumSlot    = document.getElementById('summarySlot');
+
+@if (selectedPatient != null)
+{
+    <text>sumPatient.textContent = '@(selectedPatient.AspNetUser?.FirstName) @(selectedPatient.AspNetUser?.LastName)';</text>
+}
+
+specSelect.addEventListener('change', async () => {
+    const specId = specSelect.value;
+    sumSpec.textContent = specSelect.options[specSelect.selectedIndex]?.text ?? '—';
+    doctorSelect.innerHTML = '<option value="">Loading…</option>';
+    doctorSelect.disabled = true;
+    dateInput.disabled = true;
+    dateInput.value = '';
+    slotsDiv.innerHTML = '';
+    startHidden.value = '';
+    endHidden.value = '';
+    submitBtn.disabled = true;
+    sumDoctor.textContent = '—';
+    sumDate.textContent   = '—';
+    sumSlot.textContent   = '—';
+
+    if (!specId) { doctorCard.style.display = 'none'; return; }
+
+    try {
+        const res  = await fetch(`/Receptionist/GetDoctorsBySpecialization?specializationId=${specId}`);
+        const docs = await res.json();
+        doctorSelect.innerHTML = '<option value="">— Choose a doctor —</option>';
+        docs.forEach(d => {
+            const o = document.createElement('option');
+            o.value = d.id; o.textContent = d.name;
+            doctorSelect.appendChild(o);
+        });
+        doctorSelect.disabled = false;
+        doctorCard.style.display = '';
+    } catch { doctorSelect.innerHTML = '<option value="">Error loading doctors</option>'; }
+});
+
+doctorSelect.addEventListener('change', () => {
+    sumDoctor.textContent = doctorSelect.options[doctorSelect.selectedIndex]?.text ?? '—';
+    dateInput.disabled = !doctorSelect.value;
+    dateInput.value = '';
+    slotsDiv.innerHTML = '';
+    startHidden.value = '';
+    endHidden.value = '';
+    submitBtn.disabled = true;
+    sumDate.textContent = '—';
+    sumSlot.textContent = '—';
+    if (doctorSelect.value) { dateCard.style.display = ''; }
+});
+
+dateInput.addEventListener('change', async () => {
+    const doctorId = doctorSelect.value;
+    const date     = dateInput.value;
+    sumDate.textContent = date ? new Date(date).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    startHidden.value = ''; endHidden.value = '';
+    submitBtn.disabled = true;
+    sumSlot.textContent = '—';
+
+    if (!doctorId || !date) return;
+
+    slotsDiv.innerHTML = '<p style="color:var(--text-light);font-size:14px;"><i class="bi bi-hourglass-split me-1"></i> Loading slots…</p>';
+    slotCard.style.display = '';
+
+    try {
+        const res   = await fetch(`/Receptionist/GetAvailableSlots?doctorId=${doctorId}&date=${date}`);
+        const slots = await res.json();
+
+        if (!slots.length) {
+            slotsDiv.innerHTML = '<p style="color:var(--text-mid);font-size:14px;"><i class="bi bi-calendar-x me-1"></i> No available slots on this date</p>';
+            return;
+        }
+
+        slotsDiv.innerHTML = '';
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px;';
+
+        slots.forEach(slot => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'btn btn-outline-primary';
+            btn.style.cssText = 'font-size:13px;font-weight:500;';
+            btn.textContent = slot.display;
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#slotsContainer .btn').forEach(b => {
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-outline-primary');
+                });
+                btn.classList.remove('btn-outline-primary');
+                btn.classList.add('btn-primary');
+                startHidden.value = slot.startTime;
+                endHidden.value   = slot.endTime;
+                submitBtn.disabled = false;
+                sumSlot.textContent = slot.display;
+                reasonCard.style.display = '';
+            });
+            grid.appendChild(btn);
+        });
+
+        slotsDiv.appendChild(grid);
+    } catch { slotsDiv.innerHTML = '<p style="color:var(--danger);font-size:14px;">Error loading slots.</p>'; }
+});
+</script>
+}

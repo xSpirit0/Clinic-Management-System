@@ -1,100 +1,97 @@
 @model ClinicAPI.Models.Prescription
-
 @{
     ViewData["Title"] = "Prescription Details";
+    var status = Model.PrescriptionStatus?.PrescriptionStatus1 ?? "Unknown";
+    var bc = status switch {
+        "Active"    => "bg-success",
+        "Completed" => "bg-secondary",
+        "Cancelled" => "bg-danger",
+        _           => "bg-secondary"
+    };
 }
 
-<div class="container mt-4">
-
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="page-header mb-0">
         <h1>Prescription #@Model.PrescriptionId</h1>
-        <a asp-action="MyPrescriptions" class="btn btn-outline-secondary">← Back</a>
+        <p>Issued @Model.IssuedAt.ToString("dddd, dd MMMM yyyy")</p>
     </div>
+    <div class="d-flex gap-2 align-items-center">
+        <span class="badge @bc" style="font-size:13px;padding:7px 14px;">@status</span>
+        <a asp-action="MyPrescriptions" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Back
+        </a>
+    </div>
+</div>
 
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Prescription Information</h5>
-            @{
-                @* ⚠️ Assumed: PrescriptionStatus.PrescriptionStatus1 *@
-                var status = Model.PrescriptionStatus?.PrescriptionStatus1 ?? "Unknown";
-                var badgeClass = status switch
-                {
-                    "Active" => "bg-success",
-                    "Completed" => "bg-secondary",
-                    "Cancelled" => "bg-danger",
-                    _ => "bg-light text-dark"
-                };
+<!-- Info card -->
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-info-circle me-2"></i>Prescription Information</div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-sm-6">
+                <div style="font-size:12px;color:var(--text-light);margin-bottom:2px;">Issued On</div>
+                <div style="font-weight:500;">@Model.IssuedAt.ToString("dd MMMM yyyy, HH\\:mm")</div>
+            </div>
+            <div class="col-sm-6">
+                <div style="font-size:12px;color:var(--text-light);margin-bottom:2px;">Prescribed By</div>
+                <div style="font-weight:500;">Dr. @(Model.VisitRecord?.Doctor?.AspNetUser?.FirstName ?? "—") @(Model.VisitRecord?.Doctor?.AspNetUser?.LastName ?? "")</div>
+            </div>
+            @if (Model.VisitRecord?.Appointment != null)
+            {
+                <div class="col-sm-6">
+                    <div style="font-size:12px;color:var(--text-light);margin-bottom:2px;">From Visit</div>
+                    <a asp-action="VisitRecordDetails" asp-route-id="@Model.VisitRecord.VisitRecordId"
+                       style="font-size:14px;">
+                        View visit on @Model.VisitRecord.VisitDate.ToString("dd MMM yyyy")
+                    </a>
+                </div>
             }
-            <span class="badge @badgeClass fs-6">@status</span>
-        </div>
-        <div class="card-body">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <small class="text-muted d-block">Issued On</small>
-                    <strong>@Model.IssuedAt.ToString("dddd, dd MMMM yyyy HH:mm")</strong>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <small class="text-muted d-block">Prescribed By</small>
-                    <strong>@(Model.VisitRecord?.Doctor?.AspNetUser?.FirstName ?? "—")</strong>
-                </div>
-                @if (Model.VisitRecord?.Appointment != null)
-                {
-                    <div class="col-md-6">
-                        <small class="text-muted d-block">From Visit</small>
-                        <a asp-action="VisitRecordDetails" asp-route-id="@Model.VisitRecord.VisitRecordId">
-                            View visit on @Model.VisitRecord.VisitDate.ToString("dd MMM yyyy")
-                        </a>
-                    </div>
-                }
-            </div>
         </div>
     </div>
+</div>
 
-    <div class="card">
-        <div class="card-header">
-            <h5 class="mb-0">Medications (@(Model.PrescriptionItems?.Count ?? 0))</h5>
+<!-- Medications -->
+<div class="card mb-4">
+    <div class="card-header">
+        <i class="bi bi-capsule me-2"></i>Medications
+        <span class="badge bg-primary ms-2">@(Model.PrescriptionItems?.Count ?? 0)</span>
+    </div>
+    @if (Model.PrescriptionItems == null || !Model.PrescriptionItems.Any())
+    {
+        <div class="card-body text-center py-4" style="color:var(--text-light);">
+            No medications listed in this prescription.
         </div>
-        @if (Model.PrescriptionItems == null || !Model.PrescriptionItems.Any())
-        {
-            <div class="card-body text-center text-muted p-4">
-                No medications listed in this prescription.
-            </div>
-        }
-        else
-        {
-            <div class="table-responsive">
-                <table class="table mb-0">
-                    <thead class="table-light">
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th>Medication</th>
+                        <th>Dosage</th>
+                        <th>Frequency</th>
+                        <th>Duration</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.PrescriptionItems)
+                    {
                         <tr>
-                            <th>Medication</th>
-                            <th>Dosage</th>
-                            <th>Frequency</th>
-                            <th>Duration</th>
+                            <td style="font-weight:600;font-size:14px;">@item.MedicationName</td>
+                            <td style="font-size:13px;">@(item.Dosage ?? "—")</td>
+                            <td style="font-size:13px;">@(item.Frequency ?? "—")</td>
+                            <td style="font-size:13px;">@(item.DurationDays.HasValue ? item.DurationDays + " days" : "—")</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        @* ⚠️ Property names assumed: MedicationName, Dosage, Frequency, Duration.
-                           If the scaffolded entity uses different names, adjust here. *@
-                        @foreach (var item in Model.PrescriptionItems)
-                        {
-                            <tr>
-                                <td><strong>@item.MedicationName</strong></td>
-                                <td>@(item.Dosage ?? "—")</td>
-                                <td>@(item.Frequency ?? "—")</td>
-                                
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
-        }
-    </div>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
 
-    <div class="alert alert-info mt-4 mb-0">
-        <small>
-            <strong>Important:</strong> Always follow your doctor's instructions.
-            Do not stop, change, or share your medication without consulting your doctor first.
-        </small>
-    </div>
-
+<div class="alert alert-info mb-0">
+    <i class="bi bi-shield-check me-2"></i>
+    <strong>Important:</strong> Always follow your doctor's instructions.
+    Do not stop, change, or share your medication without consulting your doctor first.
 </div>

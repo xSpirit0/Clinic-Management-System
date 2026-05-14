@@ -1,8 +1,521 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "Home";
+    Layout = "_Layout";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<style>
+    /* ── HERO ── */
+    .hero {
+        background: var(--white);
+        border-radius: 20px;
+        padding: 4rem 3rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: -60px;
+            right: -60px;
+            width: 340px;
+            height: 340px;
+            background: radial-gradient(circle, rgba(26,86,240,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            bottom: -40px;
+            left: 30%;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(0,194,179,0.07) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+    .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--primary-light);
+        color: var(--primary);
+        font-size: 12px;
+        font-weight: 700;
+        padding: 5px 12px;
+        border-radius: 99px;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        margin-bottom: 1.25rem;
+    }
+
+    .hero h1 {
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 700;
+        line-height: 1.15;
+        letter-spacing: -0.03em;
+        color: var(--text-dark);
+        margin-bottom: 1rem;
+    }
+
+        .hero h1 .highlight {
+            color: var(--primary);
+        }
+
+    .hero p {
+        font-size: 1rem;
+        color: var(--text-mid);
+        line-height: 1.7;
+        max-width: 480px;
+        margin-bottom: 2rem;
+    }
+
+    .hero-actions {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .hero-visual {
+        position: relative;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    .hero-blob {
+        width: 320px;
+        height: 320px;
+        background: var(--primary-light);
+        border-radius: 60% 40% 70% 30% / 50% 60% 40% 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+    }
+
+    .hero-icon-main {
+        font-size: 96px;
+        color: var(--primary);
+        opacity: 0.9;
+        animation: float 4s ease-in-out infinite;
+    }
+
+    @@keyframes float {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-12px);
+        }
+    }
+
+    .hero-card-float {
+        position: absolute;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 12px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        box-shadow: var(--shadow);
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+        animation: floatCard 5s ease-in-out infinite;
+    }
+
+    @@keyframes floatCard {
+        0%, 100% {
+            transform: translateY(0);
+        }
+
+        50% {
+            transform: translateY(-8px);
+        }
+    }
+
+    .hero-card-float .card-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .hero-card-float:nth-child(2) {
+        top: 30px;
+        right: -20px;
+        animation-delay: -2s;
+    }
+
+    .hero-card-float:nth-child(3) {
+        bottom: 40px;
+        left: -30px;
+        animation-delay: -1s;
+    }
+
+    .hero-card-float .card-sub {
+        font-size: 11px;
+        color: var(--text-light);
+        font-weight: 400;
+    }
+
+    /* ── FEATURES ── */
+    .features-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        margin-bottom: 2rem;
+    }
+
+    .feature-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        transition: all 0.2s;
+        cursor: default;
+    }
+
+        .feature-card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+            transform: translateY(-2px);
+        }
+
+    .feature-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 22px;
+        margin-bottom: 1rem;
+    }
+
+    .feature-card h5 {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 6px;
+        color: var(--text-dark);
+    }
+
+    .feature-card p {
+        font-size: 13px;
+        color: var(--text-mid);
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    /* ── CTA BANNER ── */
+    .cta-banner {
+        background: var(--primary);
+        border-radius: 20px;
+        padding: 2.5rem 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 2rem;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .cta-banner::before {
+            content: '';
+            position: absolute;
+            right: -40px;
+            top: -60px;
+            width: 250px;
+            height: 250px;
+            background: rgba(255,255,255,0.06);
+            border-radius: 50%;
+        }
+
+        .cta-banner h2 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 6px;
+        }
+
+        .cta-banner p {
+            color: rgba(255,255,255,0.8);
+            font-size: 14px;
+            margin: 0;
+        }
+
+    .btn-white {
+        background: white;
+        color: var(--primary);
+        border: none;
+        padding: 12px 28px;
+        border-radius: var(--radius-sm);
+        font-family: var(--font-display);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        white-space: nowrap;
+    }
+
+        .btn-white:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+            transform: translateY(-1px);
+        }
+
+    /* ── ROLES SECTION ── */
+    .roles-section {
+        margin-bottom: 2rem;
+    }
+
+    .section-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--text-light);
+        margin-bottom: 6px;
+    }
+
+    .section-title {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: var(--text-dark);
+        margin-bottom: 1rem;
+        letter-spacing: -0.02em;
+    }
+
+    .role-card {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1.5rem;
+        text-decoration: none;
+        color: inherit;
+        display: block;
+        transition: all 0.2s;
+        height: 100%;
+    }
+
+        .role-card:hover {
+            border-color: var(--primary);
+            box-shadow: var(--shadow);
+            transform: translateY(-3px);
+            color: inherit;
+        }
+
+    .role-card-icon {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        margin-bottom: 1rem;
+    }
+
+    .role-card h5 {
+        font-size: 15px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .role-card p {
+        font-size: 13px;
+        color: var(--text-mid);
+        margin-bottom: 1rem;
+        line-height: 1.5;
+    }
+
+    .role-card .go-link {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--primary);
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    @@media (max-width: 768px) {
+        .hero {
+            padding: 2rem 1.5rem;
+        }
+
+        .hero-visual {
+            display: none;
+        }
+
+        .cta-banner {
+            padding: 2rem 1.5rem;
+        }
+    }
+</style>
+
+<!-- ── HERO ── -->
+<div class="hero">
+    <div class="row align-items-center">
+        <div class="col-lg-6">
+            <div class="hero-eyebrow">
+                <i class="bi bi-shield-check"></i>
+                Trusted Healthcare
+            </div>
+            <h1>
+                We care about<br>
+                <span class="highlight">your health</span>
+            </h1>
+            <p>
+                Book appointments, access your medical records, and stay connected
+                with your doctors — all in one secure platform.
+            </p>
+            <div class="hero-actions">
+                <a asp-controller="Account" asp-action="Login" class="btn-primary-clinic">
+                    <i class="bi bi-calendar-plus"></i>
+                    Book an appointment
+                </a>
+                <a asp-controller="Account" asp-action="Login" class="btn-outline-clinic">
+                    Sign in
+                    <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="hero-visual">
+                <div class="hero-blob">
+                    <i class="bi bi-heart-pulse hero-icon-main"></i>
+                </div>
+                <div class="hero-card-float">
+                    <div class="card-icon" style="background:#e3f2fd;">
+                        <i class="bi bi-search" style="color:#1565c0;"></i>
+                    </div>
+                    <div>
+                        <div>Well qualified doctors</div>
+                        <div class="card-sub">Treat with care</div>
+                    </div>
+                </div>
+                <div class="hero-card-float">
+                    <div class="card-icon" style="background:#e8f5e9;">
+                        <i class="bi bi-calendar-check" style="color:#2e7d32;"></i>
+                    </div>
+                    <div>
+                        <div>Book an appointment</div>
+                        <div class="card-sub">Online appointments</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── FEATURES ── -->
+<div class="features-grid">
+    <div class="feature-card">
+        <div class="feature-icon" style="background:#e8eeff;">
+            <i class="bi bi-calendar2-check" style="color:var(--primary);"></i>
+        </div>
+        <h5>Easy Booking</h5>
+        <p>Select your specialization, doctor, date, and time slot in minutes.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon" style="background:#e8f5e9;">
+            <i class="bi bi-file-earmark-medical" style="color:#2e7d32;"></i>
+        </div>
+        <h5>Medical Records</h5>
+        <p>Access your full visit history, diagnoses, and treatments anytime.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon" style="background:#fff3e0;">
+            <i class="bi bi-capsule" style="color:#e65100;"></i>
+        </div>
+        <h5>Prescriptions</h5>
+        <p>View and track all medications prescribed by your doctors.</p>
+    </div>
+    <div class="feature-card">
+        <div class="feature-icon" style="background:#e0f7fa;">
+            <i class="bi bi-bell" style="color:#006064;"></i>
+        </div>
+        <h5>Notifications</h5>
+        <p>Stay informed with real-time updates about your appointments.</p>
+    </div>
+</div>
+
+<!-- ── ROLE PORTALS ── -->
+<div class="roles-section">
+    <div class="section-label">Portals</div>
+    <div class="section-title">Access your portal</div>
+
+    <div class="row g-3">
+        <div class="col-md-3">
+            <a asp-controller="Account" asp-action="Login" class="role-card">
+                <div class="role-card-icon" style="background:#e8f5e9;">
+                    <i class="bi bi-person-heart" style="color:#2e7d32; font-size:24px;"></i>
+                </div>
+                <h5>Patient</h5>
+                <p>Book appointments, view history, and manage prescriptions.</p>
+                <span class="go-link">Go to portal <i class="bi bi-arrow-right"></i></span>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a asp-controller="Account" asp-action="Login" class="role-card">
+                <div class="role-card-icon" style="background:#e3f2fd;">
+                    <i class="bi bi-stethoscope" style="color:#1565c0; font-size:24px;"></i>
+                </div>
+                <h5>Doctor</h5>
+                <p>Manage your schedule, appointments, and patient records.</p>
+                <span class="go-link">Go to portal <i class="bi bi-arrow-right"></i></span>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a asp-controller="Account" asp-action="Login" class="role-card">
+                <div class="role-card-icon" style="background:#fff3e0;">
+                    <i class="bi bi-person-badge" style="color:#e65100; font-size:24px;"></i>
+                </div>
+                <h5>Receptionist</h5>
+                <p>Book on behalf of patients and manage the appointment queue.</p>
+                <span class="go-link">Go to portal <i class="bi bi-arrow-right"></i></span>
+            </a>
+        </div>
+        <div class="col-md-3">
+            <a asp-controller="Account" asp-action="Login" class="role-card">
+                <div class="role-card-icon" style="background:#f3e5f5;">
+                    <i class="bi bi-building" style="color:#6a1b9a; font-size:24px;"></i>
+                </div>
+                <h5>Clinic Manager</h5>
+                <p>Oversee doctors, schedules, leave requests, and reports.</p>
+                <span class="go-link">Go to portal <i class="bi bi-arrow-right"></i></span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- ── CTA BANNER ── -->
+<div class="cta-banner">
+    <div>
+        <h2>Ready to get started?</h2>
+        <p>Create your account and book your first appointment today.</p>
+    </div>
+    <a asp-controller="Account" asp-action="Register" class="btn-white">
+        <i class="bi bi-person-plus"></i>
+        Create account
+    </a>
 </div>

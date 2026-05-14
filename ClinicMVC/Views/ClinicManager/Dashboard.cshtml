@@ -1,0 +1,146 @@
+@{
+    ViewData["Title"] = "Manager Dashboard";
+    var recentAppointments = ViewBag.RecentAppointments as List<ClinicAPI.Models.Appointment>
+                             ?? new List<ClinicAPI.Models.Appointment>();
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show">
+        <i class="bi bi-check-circle me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show">
+        <i class="bi bi-exclamation-circle me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="page-header mb-0">
+        <h1>Manager Dashboard</h1>
+        <p>@DateTime.Today.ToString("dddd, dd MMMM yyyy") — Clinic overview</p>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card blue" style="cursor:pointer;" onclick="location.href='@Url.Action("Doctors")'">
+            <div class="stat-num text-primary">@ViewBag.TotalDoctors</div>
+            <div class="stat-lbl">Total Doctors</div>
+            <div style="font-size:12px;color:var(--text-light);margin-top:4px;">@ViewBag.ActiveDoctors active</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card green" style="cursor:pointer;" onclick="location.href='@Url.Action("Patients")'">
+            <div class="stat-num" style="color:var(--success)">@ViewBag.TotalPatients</div>
+            <div class="stat-lbl">Total Patients</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card teal" style="cursor:pointer;" onclick="location.href='@Url.Action("AllAppointments")'">
+            <div class="stat-num" style="color:var(--accent)">@ViewBag.TodayAppointments</div>
+            <div class="stat-lbl">Today's Appointments</div>
+            <div style="font-size:12px;color:var(--text-light);margin-top:4px;">@ViewBag.CancelledToday cancelled</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card amber" style="cursor:pointer;" onclick="location.href='@Url.Action("LeaveRequests")'">
+            <div class="stat-num" style="color:var(--warning)">@ViewBag.PendingLeaves</div>
+            <div class="stat-lbl">Pending Leave Requests</div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row g-3 mb-4">
+    @foreach (var (icon, label, url, color) in new (string,string,string,string)[] {
+        ("bi-people",          "Manage Doctors",       Url.Action("Doctors")!,          "var(--primary)"),
+        ("bi-calendar3",       "All Appointments",     Url.Action("AllAppointments")!,  "var(--accent)"),
+        ("bi-calendar-minus",  "Leave Requests",       Url.Action("LeaveRequests")!,    "var(--warning)"),
+        ("bi-award",           "Specializations",      Url.Action("Specializations")!,  "var(--success)"),
+        ("bi-person-lines-fill","Patients",            Url.Action("Patients")!,         "#8b5cf6"),
+    })
+    {
+        <div class="col-md-2-4" style="flex:0 0 20%;max-width:20%;">
+            <a href="@url" style="text-decoration:none;">
+                <div class="card text-center h-100" style="transition:all .2s;padding:1.25rem .5rem;">
+                    <div style="font-size:2rem;color:@color;margin-bottom:8px;">
+                        <i class="bi @icon"></i>
+                    </div>
+                    <div style="font-family:var(--font-display);font-weight:600;font-size:13px;color:var(--text-dark);">
+                        @label
+                    </div>
+                </div>
+            </a>
+        </div>
+    }
+</div>
+
+<!-- Today's Queue -->
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-calendar-day me-2"></i>Today's Appointments (first 5)</span>
+        <a asp-action="AllAppointments" asp-route-filter="today" class="btn btn-sm btn-outline-secondary">
+            View All <i class="bi bi-arrow-right ms-1"></i>
+        </a>
+    </div>
+    <div class="card-body p-0">
+        @if (!recentAppointments.Any())
+        {
+            <div class="text-center py-5">
+                <i class="bi bi-calendar-x" style="font-size:2.5rem;color:var(--text-light);"></i>
+                <p class="mt-3" style="color:var(--text-mid);">No appointments today.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Patient</th>
+                            <th>Doctor</th>
+                            <th>Specialization</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var a in recentAppointments)
+                        {
+                            var s = a.AppointmentStatus?.AppointmentStatus1 ?? "";
+                            var bc = s switch {
+                                "Requested"  => "bg-secondary",
+                                "Confirmed"  => "bg-primary",
+                                "CheckedIn"  => "bg-info",
+                                "InProgress" => "bg-warning text-dark",
+                                "Completed"  => "bg-success",
+                                "Cancelled"  => "bg-danger",
+                                "Missed"     => "bg-dark",
+                                _            => "bg-secondary"
+                            };
+                            <tr>
+                                <td style="font-family:var(--font-display);font-weight:600;">
+                                    @a.SlotStartTime.ToString("HH\\:mm")
+                                </td>
+                                <td style="font-size:13px;">
+                                    @(a.Patient?.AspNetUser?.FirstName ?? "—") @(a.Patient?.AspNetUser?.LastName ?? "")
+                                </td>
+                                <td style="font-size:13px;">
+                                    Dr. @(a.Doctor?.AspNetUser?.FirstName ?? "—") @(a.Doctor?.AspNetUser?.LastName ?? "")
+                                </td>
+                                <td style="font-size:13px;">@a.Specialization?.Name</td>
+                                <td><span class="badge @bc">@s</span></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
