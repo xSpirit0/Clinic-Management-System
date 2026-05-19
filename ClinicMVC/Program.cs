@@ -1,5 +1,6 @@
 using ClinicAPI.Models;
 using Microsoft.EntityFrameworkCore;
+//using Microsoft.AspNetCore.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -14,11 +15,14 @@ builder.Services.AddDbContext<ClinicDbContext>(options =>
     )
 );
 
-// =====================
+
 // Build app (ONLY ONCE)
 // =====================
 var app = builder.Build();
 
+     
+  
+  
 // =====================
 // Configure middleware
 // =====================
@@ -32,7 +36,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
-
+app.UseAuthentication();
 app.UseAuthorization();
 
 // =====================
@@ -42,6 +46,8 @@ app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
+app.MapRazorPages();
+
 
 // =====================
 // Run app
