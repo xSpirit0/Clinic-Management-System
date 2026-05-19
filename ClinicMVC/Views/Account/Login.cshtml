@@ -1,0 +1,58 @@
+﻿@model ClinicMVC.ViewModels.LoginViewModel
+@{  
+    ViewData["Title"] = "Login";  
+}  
+
+<div class="container mt-5">  
+    <div class="row justify-content-center">  
+        <div class="col-lg-5 col-md-7">  
+            <div class="card border-0 shadow-lg">  
+                <!-- Card Header -->  
+                <div class="card-header bg-primary text-white text-center py-4">  
+                    <h1 class="mb-0 display-6 fw-semibold" style="letter-spacing: 1px;">Login</h1>  
+                </div>  
+
+                <!-- Card Body -->  
+                <div class="card-body p-4">  
+                    <form method="post" asp-action="Login">  
+                        <!-- Email Input -->  
+                        <div class="mb-3">  
+                            <label asp-for="Email" class="form-label">Email Address</label>  
+                            <input asp-for="Email" class="form-control" placeholder="name@example.com" required />  
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>  
+
+                        <!-- Password Input -->  
+                        <div class="mb-3">  
+                            <label asp-for="Password" class="form-label">Password</label>  
+                            <input asp-for="Password" type="password" class="form-control" id="Password" name="Password" placeholder="Password" required />  
+                            <span asp-validation-for="Password" class="text-danger"></span>
+                        </div>  
+
+                        <!-- Remember Me Checkbox -->  
+                        <div class="form-check mb-3">  
+                            <input asp-for="RememberMe" class="form-check-input" id="RememberMe" name="RememberMe" />  
+                            <label asp-for="RememberMe" class="form-check-label" for="RememberMe">Remember Me</label>  
+                        </div>  
+
+                        <!-- Submit Button -->  
+                        <div class="d-grid">  
+                            <button type="submit" class="btn btn-primary btn-lg">Login</button>  
+                        </div>  
+                    </form>  
+                </div>  
+
+                <!-- Card Footer -->  
+                <div class="card-footer text-center bg-light py-3">  
+                    <small class="text-muted">  
+                        Don't have an account? <a asp-action="Register" class="text-primary fw-bold">Register here</a>  
+                    </small>  
+                </div>  
+            </div>  
+        </div>  
+    </div>  
+</div>  
+
+@section Scripts {   
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}  
+}
