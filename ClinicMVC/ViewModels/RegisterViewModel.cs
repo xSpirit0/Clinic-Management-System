@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+
 namespace ClinicMVC.ViewModels
 {
     public class RegisterViewModel
@@ -28,6 +29,20 @@ namespace ClinicMVC.ViewModels
         [Display(Name = "Phone Number")]
         [StringLength(20, ErrorMessage = "Phone number cannot be longer than {1} characters.")]
         public required string PhoneNumber { get; set; }
+
+        [Required]
+        [Display(Name = "CPR Number")]
+        [RegularExpression(@"^\d{9}$", ErrorMessage = "CPR Number must be a 9-digit number.")]
+        public required string CprNumber { get; set; }
+
+        [Required]
+        [DataType(DataType.Date)]
+        [Display(Name = "Date of Birth")]
+        public required DateOnly DateOfBirth { get; set; }
+
+        [Required]
+        [Display(Name = "Gender")]
+        public required string Gender { get; set; }
 
         [Required]
         [DataType(DataType.Password)]
