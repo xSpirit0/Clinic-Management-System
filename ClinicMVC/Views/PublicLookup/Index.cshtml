@@ -1,0 +1,90 @@
+@{
+    ViewData["Title"] = "Find My Appointments";
+    string lastCpr = ViewBag.LastCpr ?? "";
+    string lastRef = ViewBag.LastRef ?? "";
+}
+
+<div class="container mt-4">
+
+    <div class="row justify-content-center">
+        <div class="col-md-8 col-lg-6">
+
+            <div class="text-center mb-4">
+                <h1 class="mb-2">Find My Appointments</h1>
+                <p class="text-muted">
+                    Look up your upcoming appointments and recent visits
+                    without needing to log in.
+                </p>
+            </div>
+
+            @if (ViewBag.Error != null)
+            {
+                <div class="alert alert-danger">
+                    <strong>Couldn't find your record:</strong>
+                    <br />
+                    @ViewBag.Error
+                </div>
+            }
+
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <form asp-action="Search" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label for="cprNumber" class="form-label">
+                                <strong>CPR Number</strong>
+                            </label>
+                            <input type="text" id="cprNumber" name="cprNumber"
+                                   class="form-control form-control-lg"
+                                   value="@lastCpr"
+                                   placeholder="e.g., 880412345"
+                                   maxlength="20"
+                                   required
+                                   autofocus />
+                            <div class="form-text">
+                                Your national CPR (Central Population Register) number.
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="referenceNumber" class="form-label">
+                                <strong>Patient Reference Number</strong>
+                            </label>
+                            <input type="text" id="referenceNumber" name="referenceNumber"
+                                   class="form-control form-control-lg"
+                                   value="@lastRef"
+                                   placeholder="e.g., PAT-2024-001"
+                                   maxlength="50"
+                                   required />
+                            <div class="form-text">
+                                The reference number issued when you registered at our clinic.
+                                Ask reception if you don't have it.
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary btn-lg w-100">
+                            Look Up My Appointments
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <small class="text-muted">
+                    <strong>Privacy notice:</strong>
+                    Both your CPR and reference number must match exactly.
+                    No one else can see your records without both.
+                </small>
+            </div>
+
+            <div class="text-center mt-3">
+                <a asp-controller="Home" asp-action="Index" class="btn btn-link">
+                    ← Back to Home
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+</div>

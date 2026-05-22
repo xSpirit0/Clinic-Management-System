@@ -1,0 +1,162 @@
+@model ClinicMVC.Models.PublicLookupResult
+
+@{
+    ViewData["Title"] = "Your Records";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="mb-1">Your Records</h1>
+            <p class="text-muted mb-0">
+                Showing upcoming appointments and recent visits for
+                <strong>@Model.PatientName</strong>
+            </p>
+        </div>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            ← New Search
+        </a>
+    </div>
+
+    <!-- Upcoming Appointments -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                Upcoming Appointments
+                <span class="badge bg-primary ms-1">@Model.UpcomingAppointments.Count</span>
+            </h5>
+        </div>
+
+        @if (!Model.UpcomingAppointments.Any())
+        {
+            <div class="card-body text-center p-4 text-muted">
+                <p class="mb-0">No upcoming appointments scheduled.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Doctor</th>
+                            <th>Specialization</th>
+                            <th>Status</th>
+                            <th>Reason</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var appt in Model.UpcomingAppointments)
+                        {
+                            var badgeClass = appt.Status switch
+                            {
+                                "Requested" => "bg-warning text-dark",
+                                "Confirmed" => "bg-info text-dark",
+                                "CheckedIn" => "bg-primary",
+                                "InProgress" => "bg-primary",
+                                "Completed" => "bg-success",
+                                "Cancelled" => "bg-danger",
+                                "Missed" => "bg-secondary",
+                                _ => "bg-light text-dark"
+                            };
+
+                            <tr>
+                                <td>@appt.ScheduledDate</td>
+                                <td>@appt.SlotStartTime – @appt.SlotEndTime</td>
+                                <td>@(string.IsNullOrWhiteSpace(appt.DoctorName) ? "—" : appt.DoctorName)</td>
+                                <td>@(string.IsNullOrWhiteSpace(appt.Specialization) ? "—" : appt.Specialization)</td>
+                                <td><span class="badge @badgeClass">@appt.Status</span></td>
+                                <td>
+                                    @if (string.IsNullOrWhiteSpace(appt.ComplaintReason))
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                    else
+                                    {
+                                        @(appt.ComplaintReason.Length > 40
+                                                                    ? appt.ComplaintReason.Substring(0, 40) + "..."
+                                                                    : appt.ComplaintReason)
+                                                        }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+
+    <!-- Recent Visits -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                Recent Visits
+                <span class="badge bg-success ms-1">@Model.RecentVisits.Count</span>
+            </h5>
+        </div>
+
+        @if (!Model.RecentVisits.Any())
+        {
+            <div class="card-body text-center p-4 text-muted">
+                <p class="mb-0">No recent visits on record.</p>
+            </div>
+        }
+        else
+        {
+            <ul class="list-group list-group-flush">
+                @foreach (var visit in Model.RecentVisits)
+                {
+                    <li class="list-group-item">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <strong>@visit.VisitDate</strong>
+                                — with @(string.IsNullOrWhiteSpace(visit.DoctorName) ? "Unknown Doctor" : visit.DoctorName)
+                                @if (!string.IsNullOrWhiteSpace(visit.Specialization))
+                                {
+                                    <span class="text-muted"> · @visit.Specialization</span>
+                                }
+                            </div>
+                            <small class="text-muted">Visit #@visit.VisitRecordId</small>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(visit.Diagnosis))
+                        {
+                            <div class="mt-2">
+                                <small class="text-muted">Diagnosis:</small>
+                                <span>@visit.Diagnosis</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(visit.Treatment))
+                        {
+                            <div>
+                                <small class="text-muted">Treatment:</small>
+                                <span>@visit.Treatment</span>
+                            </div>
+                        }
+                        @if (visit.PrescriptionCount > 0)
+                        {
+                            <div>
+                                <small class="text-muted">Prescriptions:</small>
+                                <span class="badge bg-primary">@visit.PrescriptionCount medication(s) prescribed</span>
+                            </div>
+                        }
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Need more details?</strong>
+        For full medical records, prescription details, or to book a new appointment,
+        please log in with your account or contact the clinic reception.
+    </div>
+
+    <div class="text-center">
+        <a asp-action="Index" class="btn btn-outline-primary">Search Again</a>
+    </div>
+
+</div>

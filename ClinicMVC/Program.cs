@@ -14,6 +14,14 @@ builder.Services.AddDbContext<ClinicDbContext>(options =>
     )
 );
 
+builder.Services.AddHttpClient("ClinicApi", client =>
+{
+    var baseUrl = builder.Configuration["ClinicApi:BaseUrl"]
+                  ?? "https://localhost:7221/";
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
 // =====================
 // Build app (ONLY ONCE)
 // =====================
