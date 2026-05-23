@@ -6,34 +6,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicMVC.Controllers
 {
-    // TODO: Uncomment when Auth teammate finishes Login/Register
-    // [Authorize(Roles = "Patient")]
     public class PatientController : Controller
     {
         private readonly ClinicDbContext _context;
-
-        // TODO: Inject UserManager when Auth teammate finishes
-        // private readonly UserManager<ApplicationUser> _userManager;
 
         public PatientController(ClinicDbContext context)
         {
             _context = context;
         }
 
-        // ==================== HELPER (use later) ====================
-        // TODO: When auth is ready, use this to get the logged-in patient
-        // private async Task<PatientProfile?> GetCurrentPatientAsync()
-        // {
-        //     var user = await _userManager.GetUserAsync(User);
-        //     if (user == null) return null;
-        //     return await _context.PatientProfiles
-        //         .FirstOrDefaultAsync(p => p.AspNetUserId == user.Id);
-        // }
-
-        // ==================== DASHBOARD ====================
         public async Task<IActionResult> Dashboard()
         {
-            int tempPatientId = 1; // TODO: Replace with actual logged-in patient
+            int tempPatientId = 1;
 
             var upcomingAppointments = await _context.Appointments
                 .Include(a => a.Doctor)
@@ -52,7 +36,6 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
-        // ==================== MY APPOINTMENTS ====================
         public async Task<IActionResult> MyAppointments()
         {
             int tempPatientId = 1;
@@ -69,7 +52,6 @@ namespace ClinicMVC.Controllers
             return View(appointments);
         }
 
-        // ==================== APPOINTMENT DETAILS ====================
         public async Task<IActionResult> AppointmentDetails(int id)
         {
             int tempPatientId = 1;
@@ -94,7 +76,6 @@ namespace ClinicMVC.Controllers
             return View(appointment);
         }
 
-        // ==================== CANCEL APPOINTMENT (GET) ====================
         public async Task<IActionResult> CancelAppointment(int id)
         {
             int tempPatientId = 1;
@@ -123,7 +104,6 @@ namespace ClinicMVC.Controllers
             return View(appointment);
         }
 
-        // ==================== CANCEL APPOINTMENT (POST) ====================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CancelAppointmentConfirmed(int id, string reason)
@@ -155,25 +135,10 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
 
-            // TODO: Send notification to doctor when auth is ready
-            // var notification = new Notification
-            // {
-            //     AspNetUserId = appointment.Doctor.AspNetUserId,
-            //     Title = "Appointment Cancelled",
-            //     Message = $"Appointment on {appointment.ScheduledDate} cancelled.",
-            //     IsRead = false,
-            //     CreatedAt = DateTime.Now,
-            //     NotificationTypeId = ???, // confirm NotificationType lookup
-            //     AppointmentId = appointment.AppointmentId
-            // };
-            // _context.Notifications.Add(notification);
-            // await _context.SaveChangesAsync();
-
             TempData["Success"] = "Appointment cancelled successfully.";
             return RedirectToAction("MyAppointments");
         }
 
-        // ==================== MEDICAL HISTORY ====================
         public async Task<IActionResult> MedicalHistory()
         {
             int tempPatientId = 1;
@@ -190,7 +155,6 @@ namespace ClinicMVC.Controllers
             return View(visitRecords);
         }
 
-        // ==================== VISIT RECORD DETAILS ====================
         public async Task<IActionResult> VisitRecordDetails(int id)
         {
             int tempPatientId = 1;
@@ -214,7 +178,6 @@ namespace ClinicMVC.Controllers
             return View(visitRecord);
         }
 
-        // ==================== MY PRESCRIPTIONS ====================
         public async Task<IActionResult> MyPrescriptions()
         {
             int tempPatientId = 1;
@@ -234,7 +197,6 @@ namespace ClinicMVC.Controllers
             return View(prescriptions);
         }
 
-        // ==================== PRESCRIPTION DETAILS ====================
         public async Task<IActionResult> PrescriptionDetails(int id)
         {
             int tempPatientId = 1;
@@ -259,30 +221,12 @@ namespace ClinicMVC.Controllers
             return View(prescription);
         }
 
-        // ==================== NOTIFICATIONS ====================
         public async Task<IActionResult> Notifications()
         {
-        // TODO: Implement when auth is ready
-        // var user = await _userManager.GetUserAsync(User);
-        // if (user == null) return RedirectToAction("Login", "Account");
-        //
-        // var notifications = await _context.Notifications
-        //     .Include(n => n.NotificationType)
-        //     .Where(n => n.AspNetUserId == user.Id)
-        //     .OrderByDescending(n => n.CreatedAt)
-        //     .ToListAsync();
-        //
-        // foreach (var notification in notifications.Where(n => !n.IsRead))
-        // {
-        //     notification.IsRead = true;
-        // }
-        // await _context.SaveChangesAsync();
-
-         var notifications = new List<Notification>();
-           return View(notifications);
+            var notifications = new List<Notification>();
+            return View(notifications);
         }
 
-        // ==================== BOOK APPOINTMENT (GET) ====================
         public async Task<IActionResult> BookAppointment()
         {
             var specializations = await _context.Specializations
@@ -295,7 +239,6 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
-        // ==================== AJAX - GET DOCTORS BY SPECIALIZATION ====================
         public async Task<IActionResult> GetDoctorsBySpecialization(int specializationId)
         {
             var doctors = await _context.DoctorSpecializations
@@ -315,11 +258,8 @@ namespace ClinicMVC.Controllers
             return Json(doctors);
         }
 
-        // ==================== AJAX - GET AVAILABLE TIME SLOTS ====================
         public async Task<IActionResult> GetAvailableSlots(int doctorId, DateOnly date)
         {
-            // DoctorSchedule.DayOfWeek is stored as int (0=Sunday ... 6=Saturday)
-            // matching .NET's System.DayOfWeek enum values
             int dayOfWeek = (int)date.DayOfWeek;
             var schedule = await _context.DoctorSchedules
                 .FirstOrDefaultAsync(s => s.DoctorId == doctorId &&
@@ -377,7 +317,6 @@ namespace ClinicMVC.Controllers
             return Json(slots);
         }
 
-        // ==================== BOOK APPOINTMENT (POST) ====================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> BookAppointment(
@@ -427,8 +366,6 @@ namespace ClinicMVC.Controllers
 
             _context.Appointments.Add(appointment);
             await _context.SaveChangesAsync();
-
-            // TODO: Send notification to doctor when auth is ready
 
             TempData["Success"] = "Appointment booked successfully!";
             return RedirectToAction("MyAppointments");
