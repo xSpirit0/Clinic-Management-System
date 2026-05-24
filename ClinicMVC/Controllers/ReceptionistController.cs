@@ -6,15 +6,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicMVC.Controllers
 {
-    // TODO: 
-    // [Authorize(Roles = "Receptionist")]
+    
     public class ReceptionistController : Controller
     {
         private readonly ClinicDbContext _context;
 
-        // TODO: Inject UserManager 
-        // private readonly UserManager<ApplicationUser> _userManager;
-
+       
         public ReceptionistController(ClinicDbContext context)
         {
             _context = context;
@@ -180,12 +177,12 @@ namespace ClinicMVC.Controllers
                 AppointmentStatusId  = newStatusEntity.AppointmentStatusId,
                 ChangedAt            = DateTime.Now,
                 Notes                = notes,
-                ChangedByAspNetUserId = null // TODO: replace with logged-in user Id
+                ChangedByAspNetUserId = null 
             });
 
             await _context.SaveChangesAsync();
 
-            // TODO: Send notification to patient and doctor when auth is ready
+          
 
             TempData["Success"] = $"Appointment status updated to '{newStatus}'.";
             return RedirectToAction("AppointmentDetails", new { id });
@@ -259,7 +256,7 @@ namespace ClinicMVC.Controllers
         //BOOK APPOINTMENT FOR PATIENT (GET)
         public async Task<IActionResult> BookAppointment(int? patientId)
         {
-            // If patientId supplied, pre-select the patient
+            
             PatientProfile? patient = null;
             if (patientId.HasValue)
             {
@@ -370,7 +367,7 @@ namespace ClinicMVC.Controllers
             TimeOnly slotEndTime,
             string? complaintReason)
         {
-            // Verify patient exists
+            
             var patient = await _context.PatientProfiles
                 .FirstOrDefaultAsync(p => p.PatientId == patientId);
 
@@ -380,7 +377,7 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("BookAppointment");
             }
 
-            // Race-condition double-booking check
+            
             var isBooked = await _context.Appointments
                 .Include(a => a.AppointmentStatus)
                 .AnyAsync(a => a.DoctorId == doctorId &&
@@ -395,7 +392,7 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("BookAppointment", new { patientId });
             }
 
-            // Receptionist books as Confirmed (not Requested)
+            
             var confirmedStatus = await _context.AppointmentStatuses
                 .FirstOrDefaultAsync(s => s.AppointmentStatus1 == "Confirmed");
 
@@ -415,7 +412,7 @@ namespace ClinicMVC.Controllers
                 SlotEndTime          = slotEndTime,
                 AppointmentStatusId  = confirmedStatus.AppointmentStatusId,
                 ComplaintReason      = complaintReason,
-                CreatedByAspNetUserId = null, // TODO: replace with logged-in receptionist Id
+                CreatedByAspNetUserId = null, 
                 CreatedAt            = DateTime.Now,
                 UpdatedAt            = DateTime.Now
             };

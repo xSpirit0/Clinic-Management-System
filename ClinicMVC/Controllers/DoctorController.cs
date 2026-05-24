@@ -6,38 +6,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicMVC.Controllers
 {
-    // TODO: Uncomment when Auth teammate finishes Login/Register
-    // [Authorize(Roles = "Doctor")]
+    
     public class DoctorController : Controller
     {
         private readonly ClinicDbContext _context;
 
-        // TODO: Inject UserManager when Auth teammate finishes
-        // private readonly UserManager<ApplicationUser> _userManager;
+        
 
         public DoctorController(ClinicDbContext context)
         {
             _context = context;
         }
 
-        // ==================== HELPER (use later when auth ready) ====================
-        // private async Task<DoctorProfile?> GetCurrentDoctorAsync()
-        // {
-        //     var user = await _userManager.GetUserAsync(User);
-        //     if (user == null) return null;
-        //     return await _context.DoctorProfiles
-        //         .FirstOrDefaultAsync(d => d.AspNetUserId == user.Id);
-        // }
-
-        // For testing only — matches the seed data DoctorId = 1
+        
         private const int TempDoctorId = 1;
 
-        // ==================== DASHBOARD ====================
+        
         public async Task<IActionResult> Dashboard()
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
 
-            // Today's appointments
+            
             var todayAppointments = await _context.Appointments
                 .Include(a => a.Patient)
                     .ThenInclude(p => p.AspNetUser)
@@ -48,7 +37,7 @@ namespace ClinicMVC.Controllers
                 .OrderBy(a => a.SlotStartTime)
                 .ToListAsync();
 
-            // Quick stats for the dashboard
+            
             var totalToday = todayAppointments.Count;
             var completedToday = todayAppointments
                 .Count(a => a.AppointmentStatus.AppointmentStatus1 == "Completed");
@@ -59,7 +48,7 @@ namespace ClinicMVC.Controllers
                             a.AppointmentStatus.AppointmentStatus1 == "Confirmed" ||
                             a.AppointmentStatus.AppointmentStatus1 == "CheckedIn");
 
-            // Upcoming non-today appointments (next 7 days)
+            
             var upcomingWeek = await _context.Appointments
                 .Include(a => a.Patient)
                     .ThenInclude(p => p.AspNetUser)
@@ -84,7 +73,7 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
-        // ==================== MY APPOINTMENTS (with filters) ====================
+        
         public async Task<IActionResult> MyAppointments(string filter = "today", string? status = null)
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
@@ -96,7 +85,7 @@ namespace ClinicMVC.Controllers
                 .Include(a => a.AppointmentStatus)
                 .Where(a => a.DoctorId == TempDoctorId);
 
-            // Date filter
+            
             query = filter switch
             {
                 "today" => query.Where(a => a.ScheduledDate == today),
@@ -106,7 +95,7 @@ namespace ClinicMVC.Controllers
                 _ => query.Where(a => a.ScheduledDate == today)
             };
 
-            // Status filter (optional)
+            
             if (!string.IsNullOrEmpty(status) && status != "all")
             {
                 query = query.Where(a => a.AppointmentStatus.AppointmentStatus1 == status);
@@ -120,7 +109,7 @@ namespace ClinicMVC.Controllers
             ViewBag.CurrentFilter = filter;
             ViewBag.CurrentStatus = status ?? "all";
 
-            // For the status filter dropdown
+          
             ViewBag.AllStatuses = await _context.AppointmentStatuses
                 .Select(s => s.AppointmentStatus1)
                 .ToListAsync();
@@ -128,8 +117,7 @@ namespace ClinicMVC.Controllers
             return View(appointments);
         }
 
-        // ==================== APPOINTMENT DETAILS ====================
-        // Will be filled in Chunk 2
+        
         public async Task<IActionResult> AppointmentDetails(int id)
         {
             var appointment = await _context.Appointments
@@ -154,7 +142,7 @@ namespace ClinicMVC.Controllers
             return View(appointment);
         }
 
-        // ==================== UPDATE STATUS (POST) ====================
+        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateStatus(int id, string newStatus, string? notes)
@@ -179,7 +167,6 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("AppointmentDetails", new { id });
             }
 
-            // Validate transition (basic lifecycle enforcement)
             var currentStatus = appointment.AppointmentStatus.AppointmentStatus1;
             if (!IsValidTransition(currentStatus, newStatus))
             {
@@ -190,8 +177,6 @@ namespace ClinicMVC.Controllers
             appointment.AppointmentStatusId = newStatusEntity.AppointmentStatusId;
             appointment.UpdatedAt = DateTime.Now;
 
-            // Log the change in AppointmentStatusHistory
-            // TODO: When auth ready, fill in ChangedByAspNetUserId from logged-in user
             var history = new AppointmentStatusHistory
             {
                 AppointmentId = appointment.AppointmentId,
@@ -204,15 +189,12 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
 
-            // TODO: Send notification to patient
 
             TempData["Success"] = $"Appointment status updated to '{newStatus}'.";
             return RedirectToAction("AppointmentDetails", new { id });
         }
 
-        // Helper: defines valid lifecycle transitions
-        // Requested -> Confirmed -> CheckedIn -> InProgress -> Completed
-        // Any active status -> Cancelled or Missed (manual intervention)
+       
         private bool IsValidTransition(string from, string to)
         {
             if (to == "Cancelled" || to == "Missed") return true;
@@ -227,7 +209,6 @@ namespace ClinicMVC.Controllers
             };
         }
 
-        // ==================== WRITE VISIT RECORD (GET) ====================
         public async Task<IActionResult> WriteVisitRecord(int appointmentId)
         {
             var appointment = await _context.Appointments
@@ -255,7 +236,7 @@ namespace ClinicMVC.Controllers
             return View(appointment);
         }
 
-        // ==================== WRITE VISIT RECORD (POST) ====================
+      
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> WriteVisitRecord(int appointmentId,
@@ -277,14 +258,14 @@ namespace ClinicMVC.Controllers
 
             if (appointment.VisitRecord != null)
             {
-                // Update existing
+               
                 appointment.VisitRecord.DoctorNotes = doctorNotes;
                 appointment.VisitRecord.Diagnosis = diagnosis;
                 appointment.VisitRecord.Treatment = treatment;
             }
             else
             {
-                // Create new
+                
                 var visit = new VisitRecord
                 {
                     AppointmentId = appointmentId,
@@ -297,7 +278,7 @@ namespace ClinicMVC.Controllers
                 _context.VisitRecords.Add(visit);
             }
 
-            // Mark appointment Completed if it isn't already
+           
             if (appointment.AppointmentStatus.AppointmentStatus1 != "Completed")
             {
                 var completedStatus = await _context.AppointmentStatuses
@@ -324,7 +305,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("AppointmentDetails", new { id = appointmentId });
         }
 
-        // ==================== ADD PRESCRIPTION (GET) ====================
+        
         public async Task<IActionResult> AddPrescription(int visitRecordId)
         {
             var visit = await _context.VisitRecords
@@ -406,7 +387,7 @@ namespace ClinicMVC.Controllers
             _context.Prescriptions.Add(prescription);
             await _context.SaveChangesAsync();
 
-            // TODO: Send notification to patient
+            
 
             TempData["Success"] = $"Prescription with {validIndexes.Count} medication(s) added.";
             return RedirectToAction("AppointmentDetails",
@@ -452,7 +433,7 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("MyPatients");
             }
 
-            // All appointments with this patient (any doctor — doctors can see complete history)
+           
             var appointments = await _context.Appointments
                 .Include(a => a.Doctor)
                     .ThenInclude(d => d.AspNetUser)
@@ -492,20 +473,10 @@ namespace ClinicMVC.Controllers
             return View(schedules);
         }
 
-        // ==================== NOTIFICATIONS ====================
+       
         public async Task<IActionResult> Notifications()
         {
-            // TODO: Implement when auth ready
-            // var user = await _userManager.GetUserAsync(User);
-            // var notifications = await _context.Notifications
-            //     .Include(n => n.NotificationType)
-            //     .Include(n => n.Appointment)
-            //     .Where(n => n.AspNetUserId == user.Id)
-            //     .OrderByDescending(n => n.CreatedAt)
-            //     .ToListAsync();
-            // foreach (var n in notifications.Where(n => !n.IsRead)) n.IsRead = true;
-            // await _context.SaveChangesAsync();
-
+           
             var notifications = new List<Notification>();
             return View(notifications);
         }
