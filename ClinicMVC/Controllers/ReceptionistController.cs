@@ -10,11 +10,14 @@ namespace ClinicMVC.Controllers
     public class ReceptionistController : Controller
     {
         private readonly ClinicDbContext _context;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-       
-        public ReceptionistController(ClinicDbContext context)
+        public ReceptionistController(
+            ClinicDbContext context,
+            IHttpClientFactory httpClientFactory)
         {
             _context = context;
+            _httpClientFactory = httpClientFactory;
         }
 
         //  DASHBOARD 
@@ -182,7 +185,8 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
 
-          
+            await NotifyWaitingRoomAsync();
+
 
             TempData["Success"] = $"Appointment status updated to '{newStatus}'.";
             return RedirectToAction("AppointmentDetails", new { id });
@@ -419,13 +423,68 @@ namespace ClinicMVC.Controllers
 
             _context.Appointments.Add(appointment);
             await _context.SaveChangesAsync();
-
+            await NotifyWaitingRoomAsync();
             // TODO: Send notification to doctor and patient 
 
             TempData["Success"] =
                 $"Appointment booked successfully for {scheduledDate:dd MMM yyyy} at {slotStartTime:HH\\:mm}.";
 
             return RedirectToAction("PatientProfile", new { id = patientId });
+        }
+
+
+        // WAITING ROOM BOARD - public-style live display
+        public async Task<IActionResult> WaitingRoomBoard()
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+
+            var todayAppointments = await _context.Appointments
+                .Include(a => a.Patient)
+                    .ThenInclude(p => p.AspNetUser)
+                .Include(a => a.Doctor)
+                    .ThenInclude(d => d.AspNetUser)
+                .Include(a => a.Specialization)
+                .Include(a => a.AppointmentStatus)
+                .Where(a => a.ScheduledDate == today &&
+                            a.AppointmentStatus.AppointmentStatus1 != "Cancelled" &&
+                            a.AppointmentStatus.AppointmentStatus1 != "Missed")
+                .OrderBy(a => a.SlotStartTime)
+                .ToListAsync();
+
+            // Group appointments by status column for the board
+            ViewBag.Confirmed = todayAppointments
+                .Where(a => a.AppointmentStatus.AppointmentStatus1 == "Confirmed")
+                .ToList();
+
+            ViewBag.CheckedIn = todayAppointments
+                .Where(a => a.AppointmentStatus.AppointmentStatus1 == "CheckedIn")
+                .ToList();
+
+            ViewBag.InProgress = todayAppointments
+                .Where(a => a.AppointmentStatus.AppointmentStatus1 == "InProgress")
+                .ToList();
+
+            ViewBag.Completed = todayAppointments
+                .Where(a => a.AppointmentStatus.AppointmentStatus1 == "Completed")
+                .ToList();
+
+            ViewBag.LastUpdated = DateTime.Now.ToString("HH:mm:ss");
+
+            return View();
+        }
+      
+        private async Task NotifyWaitingRoomAsync()
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                client.BaseAddress = new Uri("https://localhost:7221/");
+                await client.PostAsync("api/waitingroom/notify-update", null);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalR broadcast failed: {ex.Message}");
+            }
         }
 
         public IActionResult Index()

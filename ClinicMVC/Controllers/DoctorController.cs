@@ -10,15 +10,16 @@ namespace ClinicMVC.Controllers
     public class DoctorController : Controller
     {
         private readonly ClinicDbContext _context;
+        private readonly IHttpClientFactory _httpClientFactory;
 
-        
-
-        public DoctorController(ClinicDbContext context)
+        public DoctorController(
+            ClinicDbContext context,
+            IHttpClientFactory httpClientFactory)
         {
             _context = context;
+            _httpClientFactory = httpClientFactory;
         }
 
-        
         private const int TempDoctorId = 1;
 
         
@@ -188,7 +189,7 @@ namespace ClinicMVC.Controllers
             _context.AppointmentStatusHistories.Add(history);
 
             await _context.SaveChangesAsync();
-
+            await NotifyWaitingRoomAsync();
 
             TempData["Success"] = $"Appointment status updated to '{newStatus}'.";
             return RedirectToAction("AppointmentDetails", new { id });
@@ -300,6 +301,7 @@ namespace ClinicMVC.Controllers
             }
 
             await _context.SaveChangesAsync();
+            await NotifyWaitingRoomAsync();
 
             TempData["Success"] = "Visit record saved.";
             return RedirectToAction("AppointmentDetails", new { id = appointmentId });
@@ -386,8 +388,8 @@ namespace ClinicMVC.Controllers
 
             _context.Prescriptions.Add(prescription);
             await _context.SaveChangesAsync();
+            await NotifyWaitingRoomAsync();
 
-            
 
             TempData["Success"] = $"Prescription with {validIndexes.Count} medication(s) added.";
             return RedirectToAction("AppointmentDetails",
@@ -479,6 +481,21 @@ namespace ClinicMVC.Controllers
            
             var notifications = new List<Notification>();
             return View(notifications);
+        }
+
+        
+        private async Task NotifyWaitingRoomAsync()
+        {
+            try
+            {
+                var client = _httpClientFactory.CreateClient();
+                client.BaseAddress = new Uri("https://localhost:7221/");
+                await client.PostAsync("api/waitingroom/notify-update", null);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalR broadcast failed: {ex.Message}");
+            }
         }
 
         public IActionResult Index()
