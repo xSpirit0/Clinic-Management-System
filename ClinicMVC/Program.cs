@@ -22,6 +22,8 @@ builder.Services.AddHttpClient("ClinicApi", client =>
     client.Timeout = TimeSpan.FromSeconds(15);
 });
 
+builder.Services.AddHttpClient();
+
 // =====================
 // Build app (ONLY ONCE)
 // =====================

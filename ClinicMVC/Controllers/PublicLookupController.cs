@@ -4,9 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ClinicMVC.Controllers
 {
-    // NO [Authorize] — this is a PUBLIC page by design.
-    // Patients without an account can look up their appointments
-    // using only their CPR number + Reference number.
+    
     public class PublicLookupController : Controller
     {
         private readonly IHttpClientFactory _httpClientFactory;
@@ -32,7 +30,7 @@ namespace ClinicMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Search(string cprNumber, string referenceNumber)
         {
-            // --- Basic validation ---
+            
             if (string.IsNullOrWhiteSpace(cprNumber) ||
                 string.IsNullOrWhiteSpace(referenceNumber))
             {
@@ -40,17 +38,16 @@ namespace ClinicMVC.Controllers
                 return View("Index");
             }
 
-            // --- Trim inputs (users often copy-paste with whitespace) ---
+           
             cprNumber = cprNumber.Trim();
             referenceNumber = referenceNumber.Trim();
 
             try
             {
-                // Get the named HttpClient configured in Program.cs
+               
                 var client = _httpClientFactory.CreateClient("ClinicApi");
 
-                // Build the request URL.
-                // Uri.EscapeDataString protects against special characters in user input.
+                
                 var url = $"api/public/patient-lookup" +
                           $"?cprNumber={Uri.EscapeDataString(cprNumber)}" +
                           $"&referenceNumber={Uri.EscapeDataString(referenceNumber)}";
