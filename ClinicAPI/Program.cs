@@ -86,7 +86,25 @@ builder.Services
         };
     });
 
+// SignalR
+builder.Services.AddSignalR();
+
+// CORS - allow the MVC frontend's browser to connect to the API's Hub
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("MvcClientPolicy", policy =>
+    {
+        policy.WithOrigins(
+                "https://localhost:7056",  // ClinicMVC HTTPS
+                "http://localhost:5205")   // ClinicMVC HTTP
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();         // REQUIRED for SignalR
+    });
+});
+
 var app = builder.Build();
+app.UseCors("MvcClientPolicy");
 
 
 if (app.Environment.IsDevelopment())
@@ -107,4 +125,5 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ClinicAPI.Hubs.WaitingRoomHub>("/hubs/waitingroom");
 app.Run();

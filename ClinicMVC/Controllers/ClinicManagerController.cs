@@ -6,16 +6,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicMVC.Controllers
 {
-    // TODO: 
-    // [Authorize(Roles = "ClinicManager")]
+    
     public class ClinicManagerController : Controller
     {
         private readonly ClinicDbContext _context;
 
-        // TODO: Inject UserManager 
-        // private readonly UserManager<ApplicationUser> _userManager;
-        // private readonly RoleManager<IdentityRole> _roleManager;
-
+        
         public ClinicManagerController(ClinicDbContext context)
         {
             _context = context;
@@ -296,7 +292,7 @@ namespace ClinicMVC.Controllers
 
             leave.LeaveStatusId          = approvedStatus.LeaveStatusId;
             leave.ApprovedAt             = DateTime.Now;
-            leave.ApprovedByAspNetUserId = null; // TODO: replace with logged-in user Id
+            leave.ApprovedByAspNetUserId = null; 
             leave.RejectionReason        = null;
 
             await _context.SaveChangesAsync();

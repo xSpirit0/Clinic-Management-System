@@ -1,12 +1,13 @@
 using ClinicAPI.Models;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;    
 
 var builder = WebApplication.CreateBuilder(args);
 
 // =====================
 // Add services
 // =====================
+
 // Add MVC controllers and views to the service container
 builder.Services.AddControllersWithViews();
 
@@ -33,8 +34,8 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     options.User.RequireUniqueEmail = true;
     options.SignIn.RequireConfirmedAccount = false;
 })
-     .AddRoles<IdentityRole>() // Add support for roles
-     .AddEntityFrameworkStores<ClinicDbContext>(); // Use EF Core for Identity
+    .AddRoles<IdentityRole>()                        // Add support for roles
+    .AddEntityFrameworkStores<ClinicDbContext>();    // Use EF Core for Identity
 
 // Configure the application cookie (for login and access denied paths)
 builder.Services.ConfigureApplicationCookie(options =>
@@ -43,11 +44,26 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/AccessDenied";
 });
 
+// Named HttpClient for calling the API (Public Lookup + SignalR broadcast trigger)
+builder.Services.AddHttpClient("ClinicApi", client =>
+{
+    var baseUrl = builder.Configuration["ClinicApi:BaseUrl"]
+                  ?? "https://localhost:7221/";
+    client.BaseAddress = new Uri(baseUrl);
+    client.Timeout = TimeSpan.FromSeconds(15);
+});
+
+// Generic HttpClient registration (kept for any unnamed factory usage)
+builder.Services.AddHttpClient();
+
+// =====================
 // Build app (ONLY ONCE)
 // =====================
 var app = builder.Build();
 
-// Create a scope to get services for seeding roles and users
+// =====================
+// Seed roles and demo users on startup
+// =====================
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider
@@ -56,7 +72,6 @@ using (var scope = app.Services.CreateScope())
     // List of roles to create if they don't exist
     string[] roles = { "ClinicManager", "Patient", "Doctor", "Receptionist" };
 
-    // Loop through each role and create it if it doesn't exist
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))
@@ -66,12 +81,11 @@ using (var scope = app.Services.CreateScope())
     }
 
     var userManager = scope.ServiceProvider
-       .GetRequiredService<UserManager<ApplicationUser>>();
+        .GetRequiredService<UserManager<ApplicationUser>>();
 
     // Seed ClinicManager user
     var adminEmail = "clinicManager@Clinic.com";
     var adminUser = await userManager.FindByEmailAsync(adminEmail);
-
     if (adminUser == null)
     {
         adminUser = new ApplicationUser
@@ -82,7 +96,6 @@ using (var scope = app.Services.CreateScope())
             Email = adminEmail,
             EmailConfirmed = true
         };
-
         await userManager.CreateAsync(adminUser, "Admin1234@");
         await userManager.AddToRoleAsync(adminUser, "ClinicManager");
     }
@@ -90,7 +103,6 @@ using (var scope = app.Services.CreateScope())
     // Seed Doctor user
     var doctorEmail = "doctor1@Clinic.com";
     var doctorUser = await userManager.FindByEmailAsync(doctorEmail);
-
     if (doctorUser == null)
     {
         doctorUser = new ApplicationUser
@@ -143,6 +155,7 @@ using (var scope = app.Services.CreateScope())
 // =====================
 // Configure middleware
 // =====================
+
 // If not in development, use custom error page and HSTS for security
 if (!app.Environment.IsDevelopment())
 {
@@ -152,28 +165,31 @@ if (!app.Environment.IsDevelopment())
 
 // Redirect HTTP requests to HTTPS
 app.UseHttpsRedirection();
-// Serve static files (like CSS, JS, images)
+
+// Serve static files (CSS, JS, images, signalr.js, etc.)
 app.UseStaticFiles();
 
 // Add routing middleware
 app.UseRouting();
-// Add authentication and authorization middleware
+
+// Authentication MUST come before Authorization
 app.UseAuthentication();
 app.UseAuthorization();
 
 // =====================
 // Routing
 // =====================
-// Set up default route for controllers
+
+// Default MVC route
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}"
 );
-// Map Razor Pages endpoints
+
+// Razor Pages endpoints (needed for Identity scaffolded pages)
 app.MapRazorPages();
 
 // =====================
 // Run app
 // =====================
-// Start the web application
 app.Run();

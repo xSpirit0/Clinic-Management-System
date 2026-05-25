@@ -1,0 +1,272 @@
+﻿@{
+    Layout = null;
+    var confirmed = ViewBag.Confirmed as List<ClinicAPI.Models.Appointment> ?? new List<ClinicAPI.Models.Appointment>();
+    var checkedIn = ViewBag.CheckedIn as List<ClinicAPI.Models.Appointment> ?? new List<ClinicAPI.Models.Appointment>();
+    var inProgress = ViewBag.InProgress as List<ClinicAPI.Models.Appointment> ?? new List<ClinicAPI.Models.Appointment>();
+    var completed = ViewBag.Completed as List<ClinicAPI.Models.Appointment> ?? new List<ClinicAPI.Models.Appointment>();
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Waiting Room - Live Board</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        body {
+            background: var(--bg, #f8f9fa);
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        .board-header {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+            .board-header h1 {
+                font-family: var(--font-display);
+                font-size: 28px;
+                font-weight: 700;
+                margin: 0;
+            }
+
+            .board-header p {
+                color: var(--text-mid, #6c757d);
+                margin: 4px 0 0;
+                font-size: 14px;
+            }
+
+        .col-card {
+            background: #ffffff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            min-height: 70vh;
+        }
+
+            .col-card .col-head {
+                padding: 14px 18px;
+                border-bottom: 1px solid #e9ecef;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                font-weight: 600;
+                font-size: 16px;
+            }
+
+            .col-card .col-body {
+                padding: 14px;
+            }
+
+        .col-confirmed .col-head {
+            color: var(--bs-primary, #0d6efd);
+        }
+
+        .col-checkedin .col-head {
+            color: var(--warning, #ffc107);
+        }
+
+        .col-inprogress .col-head {
+            color: var(--accent, #198754);
+        }
+
+        .col-completed .col-head {
+            color: var(--text-mid, #6c757d);
+        }
+
+        .count-badge {
+            background: #f1f3f5;
+            color: #495057;
+            border-radius: 999px;
+            padding: 2px 10px;
+            font-size: 13px;
+        }
+
+        .appt-card {
+            background: #ffffff;
+            border: 1px solid #e9ecef;
+            border-left: 4px solid #adb5bd;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+        }
+
+        .col-confirmed .appt-card {
+            border-left-color: var(--bs-primary, #0d6efd);
+        }
+
+        .col-checkedin .appt-card {
+            border-left-color: var(--warning, #ffc107);
+        }
+
+        .col-inprogress .appt-card {
+            border-left-color: var(--accent, #198754);
+        }
+
+        .col-completed .appt-card {
+            border-left-color: #adb5bd;
+            opacity: 0.75;
+        }
+
+        .appt-card .time {
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 18px;
+        }
+
+        .appt-card .name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-top: 4px;
+        }
+
+        .appt-card .doctor {
+            font-size: 12px;
+            color: var(--text-mid, #6c757d);
+            margin-top: 2px;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 30px 0;
+            color: var(--text-light, #adb5bd);
+            font-size: 13px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="board-header d-flex justify-content-between align-items-center">
+        <div>
+            <h1><i class="bi bi-hospital me-2 text-primary"></i>Clinic Waiting Room</h1>
+            <p>
+                @DateTime.Now.ToString("dddd, dd MMM yyyy")
+                &nbsp;|&nbsp; Last updated: <strong>@ViewBag.LastUpdated</strong>
+            </p>
+        </div>
+        <a href="@Url.Action("Dashboard", "Receptionist")" class="btn btn-outline-primary">
+            <i class="bi bi-arrow-left me-1"></i> Back to Dashboard
+        </a>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-md-3 col-confirmed">
+            <div class="col-card">
+                <div class="col-head">
+                    <span><i class="bi bi-check-circle me-1"></i> Confirmed</span>
+                    <span class="count-badge">@confirmed.Count</span>
+                </div>
+                <div class="col-body">
+                    @if (!confirmed.Any())
+                    {
+                        <div class="empty">No confirmed appointments</div>
+                    }
+                    @foreach (var a in confirmed)
+                    {
+                        <div class="appt-card">
+                            <div class="time">@a.SlotStartTime.ToString("HH\\:mm")</div>
+                            <div class="name">@(a.Patient?.AspNetUser?.FirstName ?? "Unknown") @(a.Patient?.AspNetUser?.LastName ?? "")</div>
+                            <div class="doctor">Dr. @(a.Doctor?.AspNetUser?.FirstName ?? "—") &middot; @a.Specialization?.Name</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-checkedin">
+            <div class="col-card">
+                <div class="col-head">
+                    <span><i class="bi bi-door-open me-1"></i> Checked In</span>
+                    <span class="count-badge">@checkedIn.Count</span>
+                </div>
+                <div class="col-body">
+                    @if (!checkedIn.Any())
+                    {
+                        <div class="empty">No one waiting</div>
+                    }
+                    @foreach (var a in checkedIn)
+                    {
+                        <div class="appt-card">
+                            <div class="time">@a.SlotStartTime.ToString("HH\\:mm")</div>
+                            <div class="name">@(a.Patient?.AspNetUser?.FirstName ?? "Unknown") @(a.Patient?.AspNetUser?.LastName ?? "")</div>
+                            <div class="doctor">Dr. @(a.Doctor?.AspNetUser?.FirstName ?? "—") &middot; @a.Specialization?.Name</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-inprogress">
+            <div class="col-card">
+                <div class="col-head">
+                    <span><i class="bi bi-activity me-1"></i> In Progress</span>
+                    <span class="count-badge">@inProgress.Count</span>
+                </div>
+                <div class="col-body">
+                    @if (!inProgress.Any())
+                    {
+                        <div class="empty">No active visits</div>
+                    }
+                    @foreach (var a in inProgress)
+                    {
+                        <div class="appt-card">
+                            <div class="time">@a.SlotStartTime.ToString("HH\\:mm")</div>
+                            <div class="name">@(a.Patient?.AspNetUser?.FirstName ?? "Unknown") @(a.Patient?.AspNetUser?.LastName ?? "")</div>
+                            <div class="doctor">Dr. @(a.Doctor?.AspNetUser?.FirstName ?? "—") &middot; @a.Specialization?.Name</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3 col-completed">
+            <div class="col-card">
+                <div class="col-head">
+                    <span><i class="bi bi-check-all me-1"></i> Completed</span>
+                    <span class="count-badge">@completed.Count</span>
+                </div>
+                <div class="col-body">
+                    @if (!completed.Any())
+                    {
+                        <div class="empty">None yet today</div>
+                    }
+                    @foreach (var a in completed)
+                    {
+                        <div class="appt-card">
+                            <div class="time">@a.SlotStartTime.ToString("HH\\:mm")</div>
+                            <div class="name">@(a.Patient?.AspNetUser?.FirstName ?? "Unknown") @(a.Patient?.AspNetUser?.LastName ?? "")</div>
+                            <div class="doctor">Dr. @(a.Doctor?.AspNetUser?.FirstName ?? "—") &middot; @a.Specialization?.Name</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
+    <script>
+        // Connect directly to the API's Waiting Room Hub.
+        // The Hub lives in the API project; the browser is the SignalR client.
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("https://localhost:7221/hubs/waitingroom")
+            .withAutomaticReconnect()
+            .build();
+
+        // When the server broadcasts "WaitingRoomUpdated", reload the page.
+        // Full reload is the simplest approach - it guarantees fresh data
+        // and avoids manual DOM manipulation.
+        connection.on("WaitingRoomUpdated", function () {
+            console.log("Waiting Room update received - reloading");
+            location.reload();
+        });
+
+        connection.start()
+            .then(() => console.log("SignalR connected to API Waiting Room Hub"))
+            .catch(err => console.error("SignalR connection failed:", err));
+    </script>
+</body>
+</html>
