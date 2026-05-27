@@ -24,6 +24,13 @@
         <h1>Manager Dashboard</h1>
         <p>@DateTime.Today.ToString("dddd, dd MMMM yyyy") — Clinic overview</p>
     </div>
+    <!-- Add New User Button -->
+    <div>
+        <a asp-action="AddNewUser" class="btn btn-outline-primary d-flex align-items-center px-4 py-2" style="font-weight:600;font-size:15px;border-radius:2rem;box-shadow:0 2px 8px 0 rgba(0,0,0,.04);gap:.5rem;">
+            <i class="bi bi-person-plus" style="font-size:1.3rem;"></i>
+            Add New User
+        </a>
+    </div>
 </div>
 
 <!-- Stat Cards -->

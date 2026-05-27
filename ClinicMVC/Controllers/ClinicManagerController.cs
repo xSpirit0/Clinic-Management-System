@@ -1,24 +1,28 @@
 using ClinicAPI.Models;
+using ClinicMVC.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClinicMVC.Controllers
 {
     // TODO: 
-    // [Authorize(Roles = "ClinicManager")]
+    [Authorize(Roles = "ClinicManager")]
     public class ClinicManagerController : Controller
     {
         private readonly ClinicDbContext _context;
 
         // TODO: Inject UserManager 
-        // private readonly UserManager<ApplicationUser> _userManager;
-        // private readonly RoleManager<IdentityRole> _roleManager;
+         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
 
-        public ClinicManagerController(ClinicDbContext context)
+        public ClinicManagerController(ClinicDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             _context = context;
+            _userManager = userManager;
+            _roleManager = roleManager;
         }
 
         public IActionResult Index() => RedirectToAction("Dashboard");
@@ -28,14 +32,14 @@ namespace ClinicMVC.Controllers
         {
             var today = DateOnly.FromDateTime(DateTime.Today);
 
-            ViewBag.TotalDoctors       = await _context.DoctorProfiles.CountAsync();
-            ViewBag.ActiveDoctors      = await _context.DoctorProfiles.CountAsync(d => d.IsActive);
-            ViewBag.TotalPatients      = await _context.PatientProfiles.CountAsync();
-            ViewBag.TodayAppointments  = await _context.Appointments.CountAsync(a => a.ScheduledDate == today);
-            ViewBag.PendingLeaves      = await _context.DoctorLeaves
+            ViewBag.TotalDoctors = await _context.DoctorProfiles.CountAsync();
+            ViewBag.ActiveDoctors = await _context.DoctorProfiles.CountAsync(d => d.IsActive);
+            ViewBag.TotalPatients = await _context.PatientProfiles.CountAsync();
+            ViewBag.TodayAppointments = await _context.Appointments.CountAsync(a => a.ScheduledDate == today);
+            ViewBag.PendingLeaves = await _context.DoctorLeaves
                 .CountAsync(l => l.LeaveStatus.LeaveStatus1 == "Pending");
-            ViewBag.TotalAppointments  = await _context.Appointments.CountAsync();
-            ViewBag.CancelledToday     = await _context.Appointments
+            ViewBag.TotalAppointments = await _context.Appointments.CountAsync();
+            ViewBag.CancelledToday = await _context.Appointments
                 .CountAsync(a => a.ScheduledDate == today &&
                             a.AppointmentStatus.AppointmentStatus1 == "Cancelled");
 
@@ -137,7 +141,7 @@ namespace ClinicMVC.Controllers
             {
                 _context.DoctorSpecializations.Add(new DoctorSpecialization
                 {
-                    DoctorId         = doctorId,
+                    DoctorId = doctorId,
                     SpecializationId = specializationId
                 });
                 await _context.SaveChangesAsync();
@@ -184,7 +188,7 @@ namespace ClinicMVC.Controllers
                 .OrderBy(s => s.DayOfWeek)
                 .ToListAsync();
 
-            ViewBag.Doctor    = doctor;
+            ViewBag.Doctor = doctor;
             ViewBag.Schedules = schedules;
             return View();
         }
@@ -210,21 +214,21 @@ namespace ClinicMVC.Controllers
 
             if (existing != null)
             {
-                existing.StartTime           = startTime;
-                existing.EndTime             = endTime;
+                existing.StartTime = startTime;
+                existing.EndTime = endTime;
                 existing.SlotDurationMinutes = slotDurationMinutes;
-                existing.IsActive            = true;
+                existing.IsActive = true;
             }
             else
             {
                 _context.DoctorSchedules.Add(new DoctorSchedule
                 {
-                    DoctorId             = doctorId,
-                    DayOfWeek            = dayOfWeek,
-                    StartTime            = startTime,
-                    EndTime              = endTime,
-                    SlotDurationMinutes  = slotDurationMinutes,
-                    IsActive             = true
+                    DoctorId = doctorId,
+                    DayOfWeek = dayOfWeek,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    SlotDurationMinutes = slotDurationMinutes,
+                    IsActive = true
                 });
             }
 
@@ -258,14 +262,14 @@ namespace ClinicMVC.Controllers
 
             query = filter switch
             {
-                "pending"  => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Pending"),
+                "pending" => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Pending"),
                 "approved" => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Approved"),
                 "rejected" => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Rejected"),
-                _          => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Pending")
+                _ => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Pending")
             };
 
-            ViewBag.Filter        = filter;
-            ViewBag.PendingCount  = await _context.DoctorLeaves
+            ViewBag.Filter = filter;
+            ViewBag.PendingCount = await _context.DoctorLeaves
                 .CountAsync(l => l.LeaveStatus.LeaveStatus1 == "Pending");
 
             return View(await query.OrderBy(l => l.StartDate).ToListAsync());
@@ -294,10 +298,10 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("LeaveRequests");
             }
 
-            leave.LeaveStatusId          = approvedStatus.LeaveStatusId;
-            leave.ApprovedAt             = DateTime.Now;
+            leave.LeaveStatusId = approvedStatus.LeaveStatusId;
+            leave.ApprovedAt = DateTime.Now;
             leave.ApprovedByAspNetUserId = null; // TODO: replace with logged-in user Id
-            leave.RejectionReason        = null;
+            leave.RejectionReason = null;
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "Leave request approved.";
@@ -327,9 +331,9 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("LeaveRequests");
             }
 
-            leave.LeaveStatusId   = rejectedStatus.LeaveStatusId;
+            leave.LeaveStatusId = rejectedStatus.LeaveStatusId;
             leave.RejectionReason = rejectionReason;
-            leave.ApprovedAt      = null;
+            leave.ApprovedAt = null;
 
             await _context.SaveChangesAsync();
             TempData["Success"] = "Leave request rejected.";
@@ -368,7 +372,7 @@ namespace ClinicMVC.Controllers
 
             _context.Specializations.Add(new Specialization
             {
-                Name        = name.Trim(),
+                Name = name.Trim(),
                 Description = description?.Trim()
             });
 
@@ -442,10 +446,10 @@ namespace ClinicMVC.Controllers
 
             query = filter switch
             {
-                "today"    => query.Where(a => a.ScheduledDate == today),
+                "today" => query.Where(a => a.ScheduledDate == today),
                 "upcoming" => query.Where(a => a.ScheduledDate > today),
-                "past"     => query.Where(a => a.ScheduledDate < today),
-                _          => query.Where(a => a.ScheduledDate == today)
+                "past" => query.Where(a => a.ScheduledDate < today),
+                _ => query.Where(a => a.ScheduledDate == today)
             };
 
             if (!string.IsNullOrEmpty(status) && status != "all")
@@ -463,9 +467,9 @@ namespace ClinicMVC.Controllers
                       a.Doctor.AspNetUser.LastName.Contains(search))));
             }
 
-            ViewBag.Filter      = filter;
-            ViewBag.Status      = status ?? "all";
-            ViewBag.Search      = search ?? "";
+            ViewBag.Filter = filter;
+            ViewBag.Status = status ?? "all";
+            ViewBag.Search = search ?? "";
             ViewBag.AllStatuses = await _context.AppointmentStatuses
                 .Select(s => s.AppointmentStatus1).ToListAsync();
 
@@ -474,5 +478,108 @@ namespace ClinicMVC.Controllers
                 .ThenBy(a => a.SlotStartTime)
                 .ToListAsync());
         }
+
+        // ADD NEW USER VIEW 
+        [HttpGet]
+        public IActionResult AddNewUser()
+        {
+            ViewBag.Specializations = _context.Specializations.Select(s => new SelectListItem
+            {
+                Value = s.SpecializationId.ToString(),
+                Text = s.Name
+            }).ToList();
+            return View();
+        }
+        //POST: ADD NEW Doctor
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddNewUser(UserViewModel model)
+        {
+            // Check if the form data is valid
+            if (ModelState.IsValid)
+            {
+                // Create a new user with the email and password from the form
+                var user = new ApplicationUser
+                {
+                    UserName = model.Email,
+                    Email = model.Email,
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                };
+
+
+                // Try to create the user in the database
+                var result = await _userManager.CreateAsync(user, model.Password);
+
+                if (result.Succeeded)
+                {
+                    var createdUser = await _userManager.FindByEmailAsync(model.Email);
+                    Console.WriteLine($"User creation result: {result.Succeeded}, User ID: {createdUser?.Id}");
+                    if (createdUser == null)
+                    {
+                        ModelState.AddModelError(string.Empty, "An error occurred while creating your account. Please try again.");
+                        return View(model);
+                    }
+                    // Add the user to the specified role
+                  await _userManager.AddToRoleAsync(user, model.Role);
+                    // if reciptionist show success message
+                    if (model.Role == "Receptionist")
+                    { 
+                        TempData["SuccessMessage"] = "Receptionist account created successfully.";
+                        return RedirectToAction("AddNewUser");
+                    }
+
+                    // create a doctor profile if the role is doctor, and link it to the created user
+                    if (model.Role == "Doctor")
+                    {
+                        if (model.SpecializationId == null) { 
+                        ModelState.AddModelError(string.Empty, "Please select a specialization for the doctor."); 
+                            return View(model);
+                        } 
+                        if(model.LicenseNumber == null)
+                        {
+                            ModelState.AddModelError(string.Empty, "Please enter a license number for the doctor.");
+                            return View(model); 
+                        }
+                        var doctorProfile = new DoctorProfile
+                        {
+                            LicenseNumber = model.LicenseNumber,
+                            DoctorSpecializations = new List<DoctorSpecialization>
+                            {
+                                
+                                new DoctorSpecialization { SpecializationId = model.SpecializationId.Value }
+                            },
+                            AspNetUserId = createdUser.Id
+                        };
+                        try
+                        {
+                            _context.DoctorProfiles.Add(doctorProfile);
+                            await _context.SaveChangesAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error saving patient profile: {ex.Message}");
+                            // If there was an error saving the patient profile, delete the user and show an error
+                            await _userManager.DeleteAsync(user);
+                            ModelState.AddModelError(string.Empty, "An error occurred while creating your profile. Please try again.");
+                            return View(model);
+                        }
+                    }
+                    return RedirectToAction("DoctorDetails", "ClinicManager");
+                }
+            
+                // If there were errors, add them to the ModelState
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+            }
+            // something failed, redisplay form
+            return View(model);
+        }
+
+
     }
 }
+    
+
