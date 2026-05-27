@@ -13,11 +13,14 @@
                 </div>
                 <div class="card-body p-4" style="padding-top: 1.25rem !important;">
                     <form asp-action="Register" asp-controller="Account" method="post" autocomplete="off" novalidate>
-                        <div asp-validation-summary="All" class="alert alert-danger mb-4"></div>
+                        @if (!ViewData.ModelState.IsValid)
+                        {
+                            <div asp-validation-summary="All" class="alert alert-danger mb-4"></div>
+
+                        }
 
                         <div class="row g-4">
-                           
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <div class="mb-3">
                                     <label asp-for="Email" class="form-label"></label>
                                     <input asp-for="Email" class="form-control" placeholder="Enter your email" />

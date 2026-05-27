@@ -66,15 +66,20 @@
                 </button>
             </div>
 
-            <div id="doctorSection" style="display: block;">
+            <div id="doctorSection" style="display: block;"> 
                 <div class="card border-0 shadow mb-4">
                     <div class="card-header bg-gradient-primary text-white d-flex align-items-center">
                         <i class="bi bi-stethoscope me-2 fs-4"></i>
                         <h5 class="mb-0 fw-semibold">Add Doctor</h5>
                     </div>
+                    
                     <div class="card-body">
                         <form id="userForm" asp-controller="ClinicManager" method="post" asp-action="AddNewUser" autocomplete="off" novalidate>
-                            <div asp-validation-summary="All" class="alert alert-danger mb-4"></div>
+                            @if (!ViewData.ModelState.IsValid)
+                            {
+                                <div asp-validation-summary="All" class="alert alert-danger mb-4"></div>
+
+                            }
                             @if (TempData["SuccessMessage"] != null)
                             {
                                 <div class="alert alert-success mb-4">@TempData["SuccessMessage"]</div>
@@ -149,7 +154,11 @@
 
                         </form>
                         </div>
-
+                        </div> 
+                        </div>
+                        </div>
+                        </div>
+                        </div>
 
                         <script>
 
