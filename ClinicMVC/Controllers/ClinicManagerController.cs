@@ -1,20 +1,24 @@
 using ClinicAPI.Models;
+using ClinicMVC.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 
 namespace ClinicMVC.Controllers
 {
-
+    [Authorize(Roles = "ClinicManager")]
     public class ClinicManagerController : Controller
     {
         private readonly ClinicDbContext _context;
-
-
-        public ClinicManagerController(ClinicDbContext context)
+        private readonly UserManager<ApplicationUser> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
+        public ClinicManagerController(ClinicDbContext context, UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             _context = context;
+            _userManager = userManager;
+            _roleManager = roleManager;
         }
 
         public IActionResult Index() => RedirectToAction("Dashboard");
@@ -470,5 +474,106 @@ namespace ClinicMVC.Controllers
                 .ThenBy(a => a.SlotStartTime)
                 .ToListAsync());
         }
+        // ADD NEW USER VIEW 
+        [HttpGet]
+        public IActionResult AddNewUser()
+        {
+            ViewBag.Specializations = _context.Specializations.Select(s => new SelectListItem
+            {
+                Value = s.SpecializationId.ToString(),
+                Text = s.Name
+            }).ToList();
+            return View();
+        }
+        //POST: ADD NEW Doctor
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddNewUser(UserViewModel model)
+        {
+            // Check if the form data is valid
+            if (ModelState.IsValid)
+            {
+                // Create a new user with the email and password from the form
+                var user = new ApplicationUser
+                {
+                    UserName = model.Email,
+                    Email = model.Email,
+                    FirstName = model.FirstName,
+                    LastName = model.LastName,
+                };
+
+
+                // Try to create the user in the database
+                var result = await _userManager.CreateAsync(user, model.Password);
+
+                if (result.Succeeded)
+                {
+                    var createdUser = await _userManager.FindByEmailAsync(model.Email);
+                    Console.WriteLine($"User creation result: {result.Succeeded}, User ID: {createdUser?.Id}");
+                    if (createdUser == null)
+                    {
+                        ModelState.AddModelError(string.Empty, "An error occurred while creating your account. Please try again.");
+                        return View(model);
+                    }
+                    // Add the user to the specified role
+                    await _userManager.AddToRoleAsync(user, model.Role);
+                    // if reciptionist show success message
+                    if (model.Role == "Receptionist")
+                    {
+                        TempData["SuccessMessage"] = "Receptionist account created successfully.";
+                        return RedirectToAction("AddNewUser");
+                    }
+
+                    // create a doctor profile if the role is doctor, and link it to the created user
+                    if (model.Role == "Doctor")
+                    {
+                        if (model.SpecializationId == null)
+                        {
+                            ModelState.AddModelError(string.Empty, "Please select a specialization for the doctor.");
+                            return View(model);
+                        }
+                        if (model.LicenseNumber == null)
+                        {
+                            ModelState.AddModelError(string.Empty, "Please enter a license number for the doctor.");
+                            return View(model);
+                        }
+                        var doctorProfile = new DoctorProfile
+                        {
+                            LicenseNumber = model.LicenseNumber,
+                            DoctorSpecializations = new List<DoctorSpecialization>
+                            {
+
+                                new DoctorSpecialization { SpecializationId = model.SpecializationId.Value }
+                            },
+                            AspNetUserId = createdUser.Id
+                        };
+                        try
+                        {
+                            _context.DoctorProfiles.Add(doctorProfile);
+                            await _context.SaveChangesAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error saving patient profile: {ex.Message}");
+                            // If there was an error saving the patient profile, delete the user and show an error
+                            await _userManager.DeleteAsync(user);
+                            ModelState.AddModelError(string.Empty, "An error occurred while creating your profile. Please try again.");
+                            return View(model);
+                        }
+                    }
+                    return RedirectToAction("DoctorDetails", "ClinicManager");
+                }
+
+                // If there were errors, add them to the ModelState
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+            }
+            // something failed, redisplay form
+            return View(model);
+        }
+
+
     }
 }
