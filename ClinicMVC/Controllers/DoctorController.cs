@@ -6,39 +6,54 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicMVC.Controllers
 {
-    
+    [Authorize(Roles = "Doctor")]
     public class DoctorController : Controller
     {
         private readonly ClinicDbContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
+        private readonly UserManager<ApplicationUser> _userManager;
 
         public DoctorController(
             ClinicDbContext context,
-            IHttpClientFactory httpClientFactory)
+            IHttpClientFactory httpClientFactory,
+            UserManager<ApplicationUser> userManager)
         {
             _context = context;
             _httpClientFactory = httpClientFactory;
+            _userManager = userManager;
         }
 
-        private const int TempDoctorId = 1;
+        // Helper - resolves the logged-in user to their DoctorProfile row.
+        private async Task<DoctorProfile?> GetCurrentDoctorAsync()
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return null;
 
-        
+            return await _context.DoctorProfiles
+                .FirstOrDefaultAsync(d => d.AspNetUserId == user.Id);
+        }
+
         public async Task<IActionResult> Dashboard()
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var today = DateOnly.FromDateTime(DateTime.Today);
 
-            
             var todayAppointments = await _context.Appointments
                 .Include(a => a.Patient)
                     .ThenInclude(p => p.AspNetUser)
                 .Include(a => a.Specialization)
                 .Include(a => a.AppointmentStatus)
-                .Where(a => a.DoctorId == TempDoctorId &&
+                .Where(a => a.DoctorId == doctor.DoctorId &&
                             a.ScheduledDate == today)
                 .OrderBy(a => a.SlotStartTime)
                 .ToListAsync();
 
-            
             var totalToday = todayAppointments.Count;
             var completedToday = todayAppointments
                 .Count(a => a.AppointmentStatus.AppointmentStatus1 == "Completed");
@@ -49,13 +64,12 @@ namespace ClinicMVC.Controllers
                             a.AppointmentStatus.AppointmentStatus1 == "Confirmed" ||
                             a.AppointmentStatus.AppointmentStatus1 == "CheckedIn");
 
-            
             var upcomingWeek = await _context.Appointments
                 .Include(a => a.Patient)
                     .ThenInclude(p => p.AspNetUser)
                 .Include(a => a.Specialization)
                 .Include(a => a.AppointmentStatus)
-                .Where(a => a.DoctorId == TempDoctorId &&
+                .Where(a => a.DoctorId == doctor.DoctorId &&
                             a.ScheduledDate > today &&
                             a.ScheduledDate <= today.AddDays(7) &&
                             a.AppointmentStatus.AppointmentStatus1 != "Cancelled" &&
@@ -63,6 +77,10 @@ namespace ClinicMVC.Controllers
                 .OrderBy(a => a.ScheduledDate)
                 .ThenBy(a => a.SlotStartTime)
                 .ToListAsync();
+
+            // Unread notification count for the navbar bell
+            ViewBag.UnreadNotifications = await _context.Notifications
+                .CountAsync(n => n.AspNetUserId == doctor.AspNetUserId && !n.IsRead);
 
             ViewBag.TodayAppointments = todayAppointments;
             ViewBag.UpcomingWeek = upcomingWeek;
@@ -74,9 +92,15 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
-        
         public async Task<IActionResult> MyAppointments(string filter = "today", string? status = null)
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var today = DateOnly.FromDateTime(DateTime.Today);
 
             var query = _context.Appointments
@@ -84,9 +108,8 @@ namespace ClinicMVC.Controllers
                     .ThenInclude(p => p.AspNetUser)
                 .Include(a => a.Specialization)
                 .Include(a => a.AppointmentStatus)
-                .Where(a => a.DoctorId == TempDoctorId);
+                .Where(a => a.DoctorId == doctor.DoctorId);
 
-            
             query = filter switch
             {
                 "today" => query.Where(a => a.ScheduledDate == today),
@@ -96,7 +119,6 @@ namespace ClinicMVC.Controllers
                 _ => query.Where(a => a.ScheduledDate == today)
             };
 
-            
             if (!string.IsNullOrEmpty(status) && status != "all")
             {
                 query = query.Where(a => a.AppointmentStatus.AppointmentStatus1 == status);
@@ -110,7 +132,6 @@ namespace ClinicMVC.Controllers
             ViewBag.CurrentFilter = filter;
             ViewBag.CurrentStatus = status ?? "all";
 
-          
             ViewBag.AllStatuses = await _context.AppointmentStatuses
                 .Select(s => s.AppointmentStatus1)
                 .ToListAsync();
@@ -118,9 +139,15 @@ namespace ClinicMVC.Controllers
             return View(appointments);
         }
 
-        
         public async Task<IActionResult> AppointmentDetails(int id)
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var appointment = await _context.Appointments
                 .Include(a => a.Patient)
                     .ThenInclude(p => p.AspNetUser)
@@ -132,7 +159,7 @@ namespace ClinicMVC.Controllers
                 .Include(a => a.AppointmentStatusHistories.OrderByDescending(h => h.ChangedAt))
                     .ThenInclude(h => h.AppointmentStatus)
                 .FirstOrDefaultAsync(a => a.AppointmentId == id &&
-                                          a.DoctorId == TempDoctorId);
+                                          a.DoctorId == doctor.DoctorId);
 
             if (appointment == null)
             {
@@ -143,15 +170,22 @@ namespace ClinicMVC.Controllers
             return View(appointment);
         }
 
-        
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateStatus(int id, string newStatus, string? notes)
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var appointment = await _context.Appointments
                 .Include(a => a.AppointmentStatus)
+                .Include(a => a.Patient)
                 .FirstOrDefaultAsync(a => a.AppointmentId == id &&
-                                          a.DoctorId == TempDoctorId);
+                                          a.DoctorId == doctor.DoctorId);
 
             if (appointment == null)
             {
@@ -178,24 +212,25 @@ namespace ClinicMVC.Controllers
             appointment.AppointmentStatusId = newStatusEntity.AppointmentStatusId;
             appointment.UpdatedAt = DateTime.Now;
 
-            var history = new AppointmentStatusHistory
+            _context.AppointmentStatusHistories.Add(new AppointmentStatusHistory
             {
                 AppointmentId = appointment.AppointmentId,
                 AppointmentStatusId = newStatusEntity.AppointmentStatusId,
                 ChangedAt = DateTime.Now,
                 Notes = notes,
-                ChangedByAspNetUserId = null
-            };
-            _context.AppointmentStatusHistories.Add(history);
+                ChangedByAspNetUserId = doctor.AspNetUserId
+            });
 
             await _context.SaveChangesAsync();
             await NotifyWaitingRoomAsync();
+
+            // Notify the patient when the status changes
+            await SendStatusChangeNotificationToPatientAsync(appointment, newStatus);
 
             TempData["Success"] = $"Appointment status updated to '{newStatus}'.";
             return RedirectToAction("AppointmentDetails", new { id });
         }
 
-       
         private bool IsValidTransition(string from, string to)
         {
             if (to == "Cancelled" || to == "Missed") return true;
@@ -212,6 +247,13 @@ namespace ClinicMVC.Controllers
 
         public async Task<IActionResult> WriteVisitRecord(int appointmentId)
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var appointment = await _context.Appointments
                 .Include(a => a.Patient)
                     .ThenInclude(p => p.AspNetUser)
@@ -219,7 +261,7 @@ namespace ClinicMVC.Controllers
                 .Include(a => a.AppointmentStatus)
                 .Include(a => a.VisitRecord)
                 .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId &&
-                                          a.DoctorId == TempDoctorId);
+                                          a.DoctorId == doctor.DoctorId);
 
             if (appointment == null)
             {
@@ -237,7 +279,6 @@ namespace ClinicMVC.Controllers
             return View(appointment);
         }
 
-      
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> WriteVisitRecord(int appointmentId,
@@ -245,11 +286,19 @@ namespace ClinicMVC.Controllers
                                                           string? diagnosis,
                                                           string? treatment)
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var appointment = await _context.Appointments
                 .Include(a => a.AppointmentStatus)
                 .Include(a => a.VisitRecord)
+                .Include(a => a.Patient)
                 .FirstOrDefaultAsync(a => a.AppointmentId == appointmentId &&
-                                          a.DoctorId == TempDoctorId);
+                                          a.DoctorId == doctor.DoctorId);
 
             if (appointment == null)
             {
@@ -257,20 +306,21 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("MyAppointments");
             }
 
+            bool wasAlreadyCompleted =
+                appointment.AppointmentStatus.AppointmentStatus1 == "Completed";
+
             if (appointment.VisitRecord != null)
             {
-               
                 appointment.VisitRecord.DoctorNotes = doctorNotes;
                 appointment.VisitRecord.Diagnosis = diagnosis;
                 appointment.VisitRecord.Treatment = treatment;
             }
             else
             {
-                
                 var visit = new VisitRecord
                 {
                     AppointmentId = appointmentId,
-                    DoctorId = TempDoctorId,
+                    DoctorId = doctor.DoctorId,
                     DoctorNotes = doctorNotes,
                     Diagnosis = diagnosis,
                     Treatment = treatment,
@@ -279,8 +329,7 @@ namespace ClinicMVC.Controllers
                 _context.VisitRecords.Add(visit);
             }
 
-           
-            if (appointment.AppointmentStatus.AppointmentStatus1 != "Completed")
+            if (!wasAlreadyCompleted)
             {
                 var completedStatus = await _context.AppointmentStatuses
                     .FirstOrDefaultAsync(s => s.AppointmentStatus1 == "Completed");
@@ -295,7 +344,7 @@ namespace ClinicMVC.Controllers
                         AppointmentStatusId = completedStatus.AppointmentStatusId,
                         ChangedAt = DateTime.Now,
                         Notes = "Visit completed.",
-                        ChangedByAspNetUserId = null
+                        ChangedByAspNetUserId = doctor.AspNetUserId
                     });
                 }
             }
@@ -303,13 +352,31 @@ namespace ClinicMVC.Controllers
             await _context.SaveChangesAsync();
             await NotifyWaitingRoomAsync();
 
+            // Notify the patient that the visit is complete (only on first save)
+            if (!wasAlreadyCompleted)
+            {
+                await SendNotificationAsync(
+                    aspNetUserId: appointment.Patient.AspNetUserId,
+                    notificationTypeName: "VisitCompleted",
+                    title: "Visit Completed",
+                    message: $"Your visit on {appointment.ScheduledDate:dd MMM yyyy} has been completed. " +
+                             "You can view the visit record and any prescriptions in your medical history.",
+                    appointmentId: appointment.AppointmentId);
+            }
+
             TempData["Success"] = "Visit record saved.";
             return RedirectToAction("AppointmentDetails", new { id = appointmentId });
         }
 
-        
         public async Task<IActionResult> AddPrescription(int visitRecordId)
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var visit = await _context.VisitRecords
                 .Include(v => v.Appointment)
                     .ThenInclude(a => a.Patient)
@@ -317,7 +384,7 @@ namespace ClinicMVC.Controllers
                 .Include(v => v.Prescriptions)
                     .ThenInclude(p => p.PrescriptionItems)
                 .FirstOrDefaultAsync(v => v.VisitRecordId == visitRecordId &&
-                                          v.DoctorId == TempDoctorId);
+                                          v.DoctorId == doctor.DoctorId);
 
             if (visit == null)
             {
@@ -328,7 +395,6 @@ namespace ClinicMVC.Controllers
             return View(visit);
         }
 
-        // ==================== ADD PRESCRIPTION (POST) ====================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddPrescription(int visitRecordId,
@@ -338,9 +404,18 @@ namespace ClinicMVC.Controllers
                                                          List<int?> durationDays,
                                                          List<string?> instructions)
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var visit = await _context.VisitRecords
+                .Include(v => v.Appointment)
+                    .ThenInclude(a => a.Patient)
                 .FirstOrDefaultAsync(v => v.VisitRecordId == visitRecordId &&
-                                          v.DoctorId == TempDoctorId);
+                                          v.DoctorId == doctor.DoctorId);
 
             if (visit == null)
             {
@@ -390,17 +465,31 @@ namespace ClinicMVC.Controllers
             await _context.SaveChangesAsync();
             await NotifyWaitingRoomAsync();
 
+            // Notify the patient that a new prescription has been issued
+            await SendNotificationAsync(
+                aspNetUserId: visit.Appointment.Patient.AspNetUserId,
+                notificationTypeName: "PrescriptionIssued",
+                title: "Prescription Issued",
+                message: $"A new prescription with {validIndexes.Count} medication(s) has been issued. " +
+                         "You can view the details in your prescriptions list.",
+                appointmentId: visit.AppointmentId);
 
             TempData["Success"] = $"Prescription with {validIndexes.Count} medication(s) added.";
             return RedirectToAction("AppointmentDetails",
                 new { id = visit.AppointmentId });
         }
 
-        // ==================== MY PATIENTS ====================
         public async Task<IActionResult> MyPatients()
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var patients = await _context.Appointments
-                .Where(a => a.DoctorId == TempDoctorId)
+                .Where(a => a.DoctorId == doctor.DoctorId)
                 .Include(a => a.Patient)
                     .ThenInclude(p => p.AspNetUser)
                 .Select(a => a.Patient)
@@ -412,12 +501,18 @@ namespace ClinicMVC.Controllers
             return View(patients);
         }
 
-        // ==================== PATIENT HISTORY ====================
         public async Task<IActionResult> PatientHistory(int id)
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             // Verify this patient has had at least one appointment with me
             var hasSeen = await _context.Appointments
-                .AnyAsync(a => a.PatientId == id && a.DoctorId == TempDoctorId);
+                .AnyAsync(a => a.PatientId == id && a.DoctorId == doctor.DoctorId);
 
             if (!hasSeen)
             {
@@ -435,7 +530,6 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("MyPatients");
             }
 
-           
             var appointments = await _context.Appointments
                 .Include(a => a.Doctor)
                     .ThenInclude(d => d.AspNetUser)
@@ -452,11 +546,17 @@ namespace ClinicMVC.Controllers
             return View(appointments);
         }
 
-        // ==================== MY SCHEDULE ====================
         public async Task<IActionResult> MySchedule()
         {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var schedules = await _context.DoctorSchedules
-                .Where(s => s.DoctorId == TempDoctorId)
+                .Where(s => s.DoctorId == doctor.DoctorId)
                 .OrderBy(s => s.DayOfWeek)
                 .ThenBy(s => s.StartTime)
                 .ToListAsync();
@@ -465,7 +565,7 @@ namespace ClinicMVC.Controllers
             var today = DateOnly.FromDateTime(DateTime.Today);
             var leaves = await _context.DoctorLeaves
                 .Include(l => l.LeaveStatus)
-                .Where(l => l.DoctorId == TempDoctorId &&
+                .Where(l => l.DoctorId == doctor.DoctorId &&
                             l.LeaveStatus.LeaveStatus1 == "Approved" &&
                             l.EndDate >= today)
                 .OrderBy(l => l.StartDate)
@@ -475,15 +575,112 @@ namespace ClinicMVC.Controllers
             return View(schedules);
         }
 
-       
         public async Task<IActionResult> Notifications()
         {
-           
-            var notifications = new List<Notification>();
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var notifications = await _context.Notifications
+                .Include(n => n.NotificationType)
+                .Where(n => n.AspNetUserId == doctor.AspNetUserId)
+                .OrderByDescending(n => n.CreatedAt)
+                .ToListAsync();
+
+            // Mark unread notifications as read on view
+            var unread = notifications.Where(n => !n.IsRead).ToList();
+            if (unread.Any())
+            {
+                foreach (var n in unread)
+                {
+                    n.IsRead = true;
+                }
+                await _context.SaveChangesAsync();
+            }
+
             return View(notifications);
         }
 
-        
+        // Helper - notifies the patient when the doctor changes appointment status.
+        // Sends different messages depending on the new status; skips statuses
+        // the patient doesn't need to be told about.
+        private async Task SendStatusChangeNotificationToPatientAsync(
+            Appointment appointment, string newStatus)
+        {
+            var patientAspNetUserId = appointment.Patient?.AspNetUserId;
+            if (string.IsNullOrEmpty(patientAspNetUserId)) return;
+
+            (string typeName, string title, string message)? payload = newStatus switch
+            {
+                "Confirmed" => (
+                    "AppointmentConfirmed",
+                    "Appointment Confirmed",
+                    $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                        $"{appointment.SlotStartTime:hh\\:mm} has been confirmed."),
+
+                "Cancelled" => (
+                    "AppointmentCancelled",
+                    "Appointment Cancelled",
+                    $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                        $"{appointment.SlotStartTime:hh\\:mm} was cancelled by the clinic."),
+
+                "Missed" => (
+                    "AppointmentMissed",
+                    "Appointment Marked Missed",
+                    $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                        $"{appointment.SlotStartTime:hh\\:mm} was marked as missed."),
+
+                _ => null
+            };
+
+            if (payload == null) return;
+
+            await SendNotificationAsync(
+                aspNetUserId: patientAspNetUserId,
+                notificationTypeName: payload.Value.typeName,
+                title: payload.Value.title,
+                message: payload.Value.message,
+                appointmentId: appointment.AppointmentId);
+        }
+
+        // Helper - sends an in-system notification.
+        private async Task SendNotificationAsync(
+            string? aspNetUserId,
+            string notificationTypeName,
+            string title,
+            string message,
+            int? appointmentId = null)
+        {
+            if (string.IsNullOrEmpty(aspNetUserId)) return;
+
+            var type = await _context.NotificationTypes
+                .FirstOrDefaultAsync(t => t.Type == notificationTypeName);
+
+            if (type == null)
+            {
+                type = new NotificationType { Type = notificationTypeName };
+                _context.NotificationTypes.Add(type);
+                await _context.SaveChangesAsync();
+            }
+
+            _context.Notifications.Add(new Notification
+            {
+                AspNetUserId = aspNetUserId,
+                NotificationTypeId = type.NotificationTypeId,
+                AppointmentId = appointmentId,
+                Title = title,
+                Message = message,
+                IsRead = false,
+                CreatedAt = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+        }
+
+        // Calls the API to broadcast a Waiting Room refresh signal to all displays.
         private async Task NotifyWaitingRoomAsync()
         {
             try
