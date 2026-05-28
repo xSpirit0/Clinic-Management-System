@@ -6,15 +6,18 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicMVC.Controllers
 {
-    
+    [Authorize(Roles = "ClinicManager")]
     public class ClinicManagerController : Controller
     {
         private readonly ClinicDbContext _context;
+        private readonly UserManager<ApplicationUser> _userManager;
 
-        
-        public ClinicManagerController(ClinicDbContext context)
+        public ClinicManagerController(
+            ClinicDbContext context,
+            UserManager<ApplicationUser> userManager)
         {
             _context = context;
+            _userManager = userManager;
         }
 
         public IActionResult Index() => RedirectToAction("Dashboard");
@@ -22,16 +25,23 @@ namespace ClinicMVC.Controllers
         // DASHBOARD 
         public async Task<IActionResult> Dashboard()
         {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                TempData["Error"] = "User profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
             var today = DateOnly.FromDateTime(DateTime.Today);
 
-            ViewBag.TotalDoctors       = await _context.DoctorProfiles.CountAsync();
-            ViewBag.ActiveDoctors      = await _context.DoctorProfiles.CountAsync(d => d.IsActive);
-            ViewBag.TotalPatients      = await _context.PatientProfiles.CountAsync();
-            ViewBag.TodayAppointments  = await _context.Appointments.CountAsync(a => a.ScheduledDate == today);
-            ViewBag.PendingLeaves      = await _context.DoctorLeaves
+            ViewBag.TotalDoctors = await _context.DoctorProfiles.CountAsync();
+            ViewBag.ActiveDoctors = await _context.DoctorProfiles.CountAsync(d => d.IsActive);
+            ViewBag.TotalPatients = await _context.PatientProfiles.CountAsync();
+            ViewBag.TodayAppointments = await _context.Appointments.CountAsync(a => a.ScheduledDate == today);
+            ViewBag.PendingLeaves = await _context.DoctorLeaves
                 .CountAsync(l => l.LeaveStatus.LeaveStatus1 == "Pending");
-            ViewBag.TotalAppointments  = await _context.Appointments.CountAsync();
-            ViewBag.CancelledToday     = await _context.Appointments
+            ViewBag.TotalAppointments = await _context.Appointments.CountAsync();
+            ViewBag.CancelledToday = await _context.Appointments
                 .CountAsync(a => a.ScheduledDate == today &&
                             a.AppointmentStatus.AppointmentStatus1 == "Cancelled");
 
@@ -44,6 +54,9 @@ namespace ClinicMVC.Controllers
                 .OrderBy(a => a.SlotStartTime)
                 .Take(5)
                 .ToListAsync();
+
+            ViewBag.UnreadNotifications = await _context.Notifications
+                .CountAsync(n => n.AspNetUserId == user.Id && !n.IsRead);
 
             return View();
         }
@@ -116,6 +129,15 @@ namespace ClinicMVC.Controllers
             doctor.IsActive = !doctor.IsActive;
             await _context.SaveChangesAsync();
 
+            // Let the doctor know their account status changed.
+            await SendNotificationAsync(
+                aspNetUserId: doctor.AspNetUserId,
+                notificationTypeName: "AccountStatusChanged",
+                title: doctor.IsActive ? "Account Activated" : "Account Deactivated",
+                message: doctor.IsActive
+                    ? "Your doctor account has been activated by the clinic manager."
+                    : "Your doctor account has been deactivated by the clinic manager.");
+
             TempData["Success"] = $"Doctor has been {(doctor.IsActive ? "activated" : "deactivated")}.";
             return RedirectToAction("DoctorDetails", new { id });
         }
@@ -133,7 +155,7 @@ namespace ClinicMVC.Controllers
             {
                 _context.DoctorSpecializations.Add(new DoctorSpecialization
                 {
-                    DoctorId         = doctorId,
+                    DoctorId = doctorId,
                     SpecializationId = specializationId
                 });
                 await _context.SaveChangesAsync();
@@ -180,7 +202,7 @@ namespace ClinicMVC.Controllers
                 .OrderBy(s => s.DayOfWeek)
                 .ToListAsync();
 
-            ViewBag.Doctor    = doctor;
+            ViewBag.Doctor = doctor;
             ViewBag.Schedules = schedules;
             return View();
         }
@@ -206,21 +228,21 @@ namespace ClinicMVC.Controllers
 
             if (existing != null)
             {
-                existing.StartTime           = startTime;
-                existing.EndTime             = endTime;
+                existing.StartTime = startTime;
+                existing.EndTime = endTime;
                 existing.SlotDurationMinutes = slotDurationMinutes;
-                existing.IsActive            = true;
+                existing.IsActive = true;
             }
             else
             {
                 _context.DoctorSchedules.Add(new DoctorSchedule
                 {
-                    DoctorId             = doctorId,
-                    DayOfWeek            = dayOfWeek,
-                    StartTime            = startTime,
-                    EndTime              = endTime,
-                    SlotDurationMinutes  = slotDurationMinutes,
-                    IsActive             = true
+                    DoctorId = doctorId,
+                    DayOfWeek = dayOfWeek,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    SlotDurationMinutes = slotDurationMinutes,
+                    IsActive = true
                 });
             }
 
@@ -254,14 +276,14 @@ namespace ClinicMVC.Controllers
 
             query = filter switch
             {
-                "pending"  => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Pending"),
+                "pending" => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Pending"),
                 "approved" => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Approved"),
                 "rejected" => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Rejected"),
-                _          => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Pending")
+                _ => query.Where(l => l.LeaveStatus.LeaveStatus1 == "Pending")
             };
 
-            ViewBag.Filter        = filter;
-            ViewBag.PendingCount  = await _context.DoctorLeaves
+            ViewBag.Filter = filter;
+            ViewBag.PendingCount = await _context.DoctorLeaves
                 .CountAsync(l => l.LeaveStatus.LeaveStatus1 == "Pending");
 
             return View(await query.OrderBy(l => l.StartDate).ToListAsync());
@@ -271,8 +293,17 @@ namespace ClinicMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveLeave(int leaveId, string? notes)
         {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                TempData["Error"] = "User profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Include Doctor so we can notify them of the decision.
             var leave = await _context.DoctorLeaves
                 .Include(l => l.LeaveStatus)
+                .Include(l => l.Doctor)
                 .FirstOrDefaultAsync(l => l.DoctorLeaveId == leaveId);
 
             if (leave == null)
@@ -290,12 +321,22 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("LeaveRequests");
             }
 
-            leave.LeaveStatusId          = approvedStatus.LeaveStatusId;
-            leave.ApprovedAt             = DateTime.Now;
-            leave.ApprovedByAspNetUserId = null; 
-            leave.RejectionReason        = null;
+            leave.LeaveStatusId = approvedStatus.LeaveStatusId;
+            leave.ApprovedAt = DateTime.Now;
+            leave.ApprovedByAspNetUserId = user.Id;
+            leave.RejectionReason = null;
 
             await _context.SaveChangesAsync();
+
+            // Notify the doctor their leave was approved.
+            await SendNotificationAsync(
+                aspNetUserId: leave.Doctor?.AspNetUserId,
+                notificationTypeName: "LeaveApproved",
+                title: "Leave Request Approved",
+                message: $"Your leave from {leave.StartDate:dd MMM yyyy} to " +
+                         $"{leave.EndDate:dd MMM yyyy} has been approved." +
+                         (string.IsNullOrWhiteSpace(notes) ? "" : $" Note: {notes}"));
+
             TempData["Success"] = "Leave request approved.";
             return RedirectToAction("LeaveRequests");
         }
@@ -304,8 +345,17 @@ namespace ClinicMVC.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RejectLeave(int leaveId, string rejectionReason)
         {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                TempData["Error"] = "User profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            // Include Doctor so we can notify them of the decision.
             var leave = await _context.DoctorLeaves
                 .Include(l => l.LeaveStatus)
+                .Include(l => l.Doctor)
                 .FirstOrDefaultAsync(l => l.DoctorLeaveId == leaveId);
 
             if (leave == null)
@@ -323,11 +373,22 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("LeaveRequests");
             }
 
-            leave.LeaveStatusId   = rejectedStatus.LeaveStatusId;
+            leave.LeaveStatusId = rejectedStatus.LeaveStatusId;
             leave.RejectionReason = rejectionReason;
-            leave.ApprovedAt      = null;
+            leave.ApprovedAt = null;
+            leave.ApprovedByAspNetUserId = user.Id;
 
             await _context.SaveChangesAsync();
+
+            // Notify the doctor their leave was rejected.
+            await SendNotificationAsync(
+                aspNetUserId: leave.Doctor?.AspNetUserId,
+                notificationTypeName: "LeaveRejected",
+                title: "Leave Request Rejected",
+                message: $"Your leave from {leave.StartDate:dd MMM yyyy} to " +
+                         $"{leave.EndDate:dd MMM yyyy} was rejected." +
+                         (string.IsNullOrWhiteSpace(rejectionReason) ? "" : $" Reason: {rejectionReason}"));
+
             TempData["Success"] = "Leave request rejected.";
             return RedirectToAction("LeaveRequests");
         }
@@ -364,7 +425,7 @@ namespace ClinicMVC.Controllers
 
             _context.Specializations.Add(new Specialization
             {
-                Name        = name.Trim(),
+                Name = name.Trim(),
                 Description = description?.Trim()
             });
 
@@ -438,10 +499,10 @@ namespace ClinicMVC.Controllers
 
             query = filter switch
             {
-                "today"    => query.Where(a => a.ScheduledDate == today),
+                "today" => query.Where(a => a.ScheduledDate == today),
                 "upcoming" => query.Where(a => a.ScheduledDate > today),
-                "past"     => query.Where(a => a.ScheduledDate < today),
-                _          => query.Where(a => a.ScheduledDate == today)
+                "past" => query.Where(a => a.ScheduledDate < today),
+                _ => query.Where(a => a.ScheduledDate == today)
             };
 
             if (!string.IsNullOrEmpty(status) && status != "all")
@@ -459,9 +520,9 @@ namespace ClinicMVC.Controllers
                       a.Doctor.AspNetUser.LastName.Contains(search))));
             }
 
-            ViewBag.Filter      = filter;
-            ViewBag.Status      = status ?? "all";
-            ViewBag.Search      = search ?? "";
+            ViewBag.Filter = filter;
+            ViewBag.Status = status ?? "all";
+            ViewBag.Search = search ?? "";
             ViewBag.AllStatuses = await _context.AppointmentStatuses
                 .Select(s => s.AppointmentStatus1).ToListAsync();
 
@@ -469,6 +530,73 @@ namespace ClinicMVC.Controllers
                 .OrderBy(a => a.ScheduledDate)
                 .ThenBy(a => a.SlotStartTime)
                 .ToListAsync());
+        }
+
+        // NOTIFICATIONS 
+        public async Task<IActionResult> Notifications()
+        {
+            var user = await GetCurrentUserAsync();
+            if (user == null)
+            {
+                TempData["Error"] = "User profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var notifications = await _context.Notifications
+                .Include(n => n.NotificationType)
+                .Where(n => n.AspNetUserId == user.Id)
+                .OrderByDescending(n => n.CreatedAt)
+                .ToListAsync();
+
+            var unread = notifications.Where(n => !n.IsRead).ToList();
+            if (unread.Any())
+            {
+                foreach (var n in unread) n.IsRead = true;
+                await _context.SaveChangesAsync();
+            }
+
+            return View(notifications);
+        }
+
+        // ==================== HELPERS ====================
+
+        private async Task<ApplicationUser?> GetCurrentUserAsync()
+        {
+            return await _userManager.GetUserAsync(User);
+        }
+
+        // Creates an in-system notification, creating the NotificationType on the fly if missing.
+        private async Task SendNotificationAsync(
+            string? aspNetUserId,
+            string notificationTypeName,
+            string title,
+            string message,
+            int? appointmentId = null)
+        {
+            if (string.IsNullOrEmpty(aspNetUserId)) return;
+
+            var type = await _context.NotificationTypes
+                .FirstOrDefaultAsync(t => t.Type == notificationTypeName);
+
+            if (type == null)
+            {
+                type = new NotificationType { Type = notificationTypeName };
+                _context.NotificationTypes.Add(type);
+                await _context.SaveChangesAsync();
+            }
+
+            _context.Notifications.Add(new Notification
+            {
+                AspNetUserId = aspNetUserId,
+                NotificationTypeId = type.NotificationTypeId,
+                AppointmentId = appointmentId,
+                Title = title,
+                Message = message,
+                IsRead = false,
+                CreatedAt = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
         }
     }
 }
