@@ -9,6 +9,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add services to the container, including controllers, database context, Identity for authentication, Swagger for API documentation, and SignalR for real-time communication. The code configures JWT authentication and CORS policies to allow the MVC frontend to connect to the API's SignalR hub.
 builder.Services.AddControllers();
 
 builder.Services.AddDbContext<ClinicDbContext>(options =>
@@ -16,6 +17,7 @@ builder.Services.AddDbContext<ClinicDbContext>(options =>
            .ConfigureWarnings(w => w.Ignore(
                Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
+// Configure Identity services for user authentication and roles, with custom password settings
 builder.Services.AddIdentityCore<ApplicationUser>(options =>
 {
     options.Password.RequireDigit = false;
@@ -28,8 +30,10 @@ builder.Services.AddIdentityCore<ApplicationUser>(options =>
 .AddSignInManager()
 .AddEntityFrameworkStores<ClinicDbContext>();
 
+// Add services for API documentation and testing with Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();
 
+// Configure Swagger to support JWT authentication in the API documentation and testing interface
 builder.Services.AddSwaggerGen(options =>
 {
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -58,6 +62,7 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// Register the token service for generating JWT tokens
 builder.Services.AddScoped<ITokenService, TokenService>();
 
 builder.Services
@@ -99,14 +104,15 @@ builder.Services.AddCors(options =>
                 "http://localhost:5205")   // ClinicMVC HTTP
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();         // REQUIRED for SignalR
+              .AllowCredentials();         
     });
 });
 
+// Build the application and configure the middleware pipeline
 var app = builder.Build();
 app.UseCors("MvcClientPolicy");
 
-
+// Enable Swagger in development environment for API documentation and testing
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -118,12 +124,12 @@ using (var scope = app.Services.CreateScope())
 
     await SeedData.InitializeAsync(scope.ServiceProvider);
 }
-
+// If not in development, use custom error page and HSTS for security
 app.UseHttpsRedirection();
 
 app.UseAuthentication(); 
 app.UseAuthorization();
-
+// Map controller routes and SignalR hubs
 app.MapControllers();
 app.MapHub<ClinicAPI.Hubs.WaitingRoomHub>("/hubs/waitingroom");
 app.Run();

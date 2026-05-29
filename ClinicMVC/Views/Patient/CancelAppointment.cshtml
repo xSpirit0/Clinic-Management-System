@@ -21,7 +21,7 @@
 
 <div class="row g-4">
     <div class="col-lg-7">
-        <!-- Appointment being cancelled -->
+        
         <div class="card mb-4">
             <div class="card-header"><i class="bi bi-calendar-x me-2"></i>Appointment You're Cancelling</div>
             <div class="card-body">
@@ -42,7 +42,7 @@
             </div>
         </div>
 
-        <!-- Reason form -->
+        
         <form asp-action="CancelAppointmentConfirmed" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" name="id" value="@Model.AppointmentId" />

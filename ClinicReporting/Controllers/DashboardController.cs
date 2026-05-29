@@ -7,13 +7,16 @@ namespace ClinicReporting.Controllers
 {
     public class DashboardController : Controller
     {
+        // Dependency for making HTTP requests to the Clinic API for fetching report data for the dashboard
         private readonly IHttpClientFactory _httpClientFactory;
 
+        // Constructor to inject the IHttpClientFactory dependency, which is used to create HTTP clients for making requests to the Clinic API to fetch report data for the dashboard.
         public DashboardController(IHttpClientFactory httpClientFactory)
         {
             _httpClientFactory = httpClientFactory;
         }
 
+        // Helper method to create an authenticated HttpClient with the JWT token from the session. This client will be used to make API calls to the Clinic API for fetching report data. If the token is not available, it will return a client without authentication, which will likely result in unauthorized responses from the API.
         private HttpClient GetAuthenticatedClient()
         {
             var client = _httpClientFactory.CreateClient("ClinicAPI");
@@ -24,6 +27,7 @@ namespace ClinicReporting.Controllers
             return client;
         }
 
+        // Helper method to check if the user is authenticated before accessing any dashboard actions. If the user is not authenticated, they will be redirected to the login page.
         private IActionResult? CheckAuth()
         {
             if (HttpContext.Session.GetString("JwtToken") == null)
@@ -31,6 +35,8 @@ namespace ClinicReporting.Controllers
             return null;
         }
 
+        // GET: /Dashboard
+        // Shows a summary report of the clinic's performance, including total appointments, completed appointments, cancelled appointments, and missed appointments
         public async Task<IActionResult> Index()
         {
             var auth = CheckAuth();
@@ -50,6 +56,8 @@ namespace ClinicReporting.Controllers
             return View(summary);
         }
 
+        // GET: /Dashboard/CancellationRate?from=2024-01-01&to=2024-01-31
+        // Shows a report of the number of appointments grouped by their status (completed, cancelled, missed) within a specified date range
         public async Task<IActionResult> AppointmentStats(DateOnly? from, DateOnly? to)
         {
             var auth = CheckAuth();
@@ -79,6 +87,8 @@ namespace ClinicReporting.Controllers
             return View(report);
         }
 
+        // GET: /Dashboard/CancellationRate?from=2024-01-01&to=2024-01-31
+        // Shows a report of the cancellation rate of appointments within a specified date range, including the total number of appointments, number of cancelled appointments, and the cancellation rate percentage
         public async Task<IActionResult> CancellationRate(DateOnly? from, DateOnly? to)
         {
             var auth = CheckAuth();
@@ -108,6 +118,8 @@ namespace ClinicReporting.Controllers
             return View(report);
         }
 
+        // GET: /Dashboard/DoctorUtilization?from=2024-01-01&to=2024-01-31
+        //  Shows a report of doctor utilization (number of appointments per doctor) within a specified date range
         public async Task<IActionResult> DoctorUtilization(DateOnly? from, DateOnly? to)
         {
             var auth = CheckAuth();
@@ -137,6 +149,8 @@ namespace ClinicReporting.Controllers
             return View(report);
         }
 
+        // GET: /Dashboard/Specializations?from=2024-01-01&to=2024-01-31
+        // Shows a report of the number of appointments for each specialization within a specified date range
         public async Task<IActionResult> Specializations(DateOnly? from, DateOnly? to)
         {
             var auth = CheckAuth();
@@ -166,6 +180,8 @@ namespace ClinicReporting.Controllers
             return View(report);
         }
 
+        // GET: /Dashboard/MissedAppointments?from=2024-01-01&to=2024-01-31
+        // Shows a report of missed appointments within a specified date range
         public async Task<IActionResult> MissedAppointments(DateOnly? from, DateOnly? to)
         {
             var auth = CheckAuth();
@@ -195,6 +211,8 @@ namespace ClinicReporting.Controllers
             return View(report);
         }
 
+        // GET: /Dashboard/TodayAppointments
+        // Shows a report of all appointments scheduled for today, including their status (completed, missed, upcoming)
         public async Task<IActionResult> TodayAppointments()
         {
             var auth = CheckAuth();
@@ -218,6 +236,8 @@ namespace ClinicReporting.Controllers
             return View(report);
         }
 
+        // GET: /Dashboard/UpcomingAppointments?days=7
+        // Shows a report of all upcoming appointments within the next specified number of days (default is 7), including their scheduled date and time, patient name, doctor name, and status
         public async Task<IActionResult> UpcomingAppointments(int days = 7)
         {
             var auth = CheckAuth();

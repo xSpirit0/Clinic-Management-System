@@ -26,7 +26,7 @@
     </div>
 </div>
 
-<!-- Stat Cards -->
+
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="stat-card blue" style="cursor:pointer;" onclick="location.href='@Url.Action("Doctors")'">
@@ -56,7 +56,7 @@
     </div>
 </div>
 
-<!-- Quick Actions -->
+
 <div class="row g-3 mb-4">
     @foreach (var (icon, label, url, color) in new (string, string, string, string)[] {
         ("bi-people",           "Manage Doctors",    Url.Action("Doctors")!,          "var(--primary)"),
@@ -82,7 +82,7 @@
     }
 </div>
 
-<!-- Today's Queue -->
+
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <span><i class="bi bi-calendar-day me-2"></i>Today's Appointments (first 5)</span>

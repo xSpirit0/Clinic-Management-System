@@ -52,7 +52,7 @@
 <div class="row g-4">
     <div class="col-lg-8">
 
-        <!-- Patient & Appointment Info -->
+        
         <div class="card mb-4">
             <div class="card-header"><i class="bi bi-person me-2"></i>Patient Information</div>
             <div class="card-body">
@@ -81,7 +81,7 @@
             </div>
         </div>
 
-        <!-- Complaint -->
+        
         @if (!string.IsNullOrWhiteSpace(Model.ComplaintReason))
         {
             <div class="card mb-4" style="border-left:4px solid var(--warning) !important;">
@@ -94,7 +94,7 @@
             </div>
         }
 
-        <!-- Visit Record -->
+      
         @if (hasVisitRec)
         {
             <div class="card mb-4" style="border-left:4px solid var(--success) !important;">
@@ -170,7 +170,7 @@
             </div>
         }
 
-        <!-- Status History -->
+      
         @if (Model.AppointmentStatusHistories?.Any() == true)
         {
             <div class="card">
@@ -196,7 +196,7 @@
         }
     </div>
 
-    <!-- Right: Actions -->
+  
     <div class="col-lg-4">
         <div class="card" style="position:sticky;top:80px;">
             <div class="card-header"><i class="bi bi-lightning me-2"></i>Lifecycle Actions</div>
@@ -269,7 +269,7 @@
     </div>
 </div>
 
-<!-- Cancel Modal -->
+
 <div class="modal fade" id="cancelModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">

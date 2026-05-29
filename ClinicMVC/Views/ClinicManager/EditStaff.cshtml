@@ -39,7 +39,7 @@
                     </div>
                 }
 
-                @* Read-only email notice *@
+                
                 <div class="alert" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);">
                     <div class="d-flex align-items-center gap-2" style="font-size:13px;color:var(--text-mid);">
                         <i class="bi bi-lock-fill text-primary"></i>
@@ -79,7 +79,7 @@
                                value="@Model.PhoneNumber" required />
                     </div>
 
-                    @* Doctor-only fields *@
+                    
                     @if (role == "Doctor" && doctorProfile != null)
                     {
                         <hr style="border-color:var(--border);" />

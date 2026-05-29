@@ -7,9 +7,11 @@ namespace ClinicMVC.Controllers
     
     public class PublicLookupController : Controller
     {
+        // Dependencies for making HTTP requests and logging
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly ILogger<PublicLookupController> _logger;
 
+        // Constructor to inject dependencies
         public PublicLookupController(
             IHttpClientFactory httpClientFactory,
             ILogger<PublicLookupController> logger)
@@ -18,19 +20,19 @@ namespace ClinicMVC.Controllers
             _logger = logger;
         }
 
-        // ==================== GET: search form ====================
+        //GET: search form 
         [HttpGet]
         public IActionResult Index()
         {
             return View();
         }
 
-        // ==================== POST: handle search ====================
+        // POST: handle search 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Search(string cprNumber, string referenceNumber)
         {
-            
+            // Basic validation to ensure both fields are filled out
             if (string.IsNullOrWhiteSpace(cprNumber) ||
                 string.IsNullOrWhiteSpace(referenceNumber))
             {

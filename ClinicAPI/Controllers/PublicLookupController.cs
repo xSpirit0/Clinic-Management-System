@@ -5,18 +5,23 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace ClinicAPI.Controllers
 {
+    // This controller provides public endpoints for looking up patient information, upcoming appointments, and recent visit records based on a patient's CPR number and reference number. It allows users to access this information without requiring authentication, making it useful for patients who want to quickly check their details without logging in.
     [AllowAnonymous]
     [Route("api/public")]
     [ApiController]
     public class PublicLookupController : ControllerBase
     {
+        // Dependency for interacting with the database to retrieve patient information, appointments, and visit records based on the provided CPR number and reference number.
         private readonly ClinicDbContext _context;
 
+        // Constructor to inject the ClinicDbContext dependency, which is used to interact with the database for retrieving patient information, appointments, and visit records based on the provided CPR number and reference number.
         public PublicLookupController(ClinicDbContext context)
         {
             _context = context;
         }
 
+        // GET: api/public/patient-lookup?cprNumber=123456-7890&referenceNumber=REF123
+        // This endpoint allows public users to look up patient information using their CPR number and reference number. It returns the patient's name, upcoming appointments, and recent visit records without requiring authentication.
         [HttpGet("patient-lookup")]
         public async Task<IActionResult> GetPatientData(
             string cprNumber,
@@ -27,7 +32,7 @@ namespace ClinicAPI.Controllers
                 .FirstOrDefaultAsync(p =>
                     p.Cprnumber == cprNumber &&
                     p.PatientReferenceNumber == referenceNumber);
-
+            // If no patient is found with the provided CPR number and reference number, return a 404 Not Found response with a message indicating that the patient was not found.
             if (patient == null)
                 return NotFound(new { message = "Patient not found. Please check your CPR number and reference number." });
 
@@ -55,7 +60,7 @@ namespace ClinicAPI.Controllers
                     a.ComplaintReason
                 })
                 .ToListAsync();
-
+            // Retrieve the 5 most recent visit records for the patient, including details about the doctor, specialization, diagnosis, treatment, and prescription count. The results are ordered by visit date in descending order.
             var recentVisits = await _context.VisitRecords
                 .Include(v => v.Doctor)
                     .ThenInclude(d => d.AspNetUser)

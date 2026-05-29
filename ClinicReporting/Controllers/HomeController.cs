@@ -26,6 +26,8 @@ namespace ClinicReporting.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
+            // Activity.Current?.Id picks up the trace id if there's a distributed tracing
+            // context; falls back to the ASP.NET request id if not.
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }

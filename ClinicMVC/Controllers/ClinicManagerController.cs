@@ -7,13 +7,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicMVC.Controllers
 {
-    [Authorize(Roles = "ClinicManager")]
+    [Authorize(Roles = "ClinicManager")]// Restrict access to this controller to users in the ClinicManager role
     public class ClinicManagerController : Controller
     {
+        // Dependencies for database access, user management, and notification services
         private readonly ClinicDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly INotificationService _notificationService;
 
+        // Constructor to inject dependencies for database access, user management, and notification services
         public ClinicManagerController(
             ClinicDbContext context,
             UserManager<ApplicationUser> userManager,
@@ -23,9 +25,10 @@ namespace ClinicMVC.Controllers
             _userManager = userManager;
             _notificationService = notificationService;
         }
-
+        // Redirect to dashboard as the default action for clinic manager
         public IActionResult Index() => RedirectToAction("Dashboard");
 
+        // Clinic manager dashboard showing key metrics and recent activity, with quick links to manage doctors, appointments, and leave requests
         public async Task<IActionResult> Dashboard()
         {
             var user = await GetCurrentUserAsync();
@@ -64,6 +67,7 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
+        // Clinic manager can view a list of all doctors with search capabilities by name or license number, and filter by active/inactive status
         public async Task<IActionResult> Doctors(string? search)
         {
             var query = _context.DoctorProfiles
@@ -86,6 +90,7 @@ namespace ClinicMVC.Controllers
             return View(await query.OrderBy(d => d.AspNetUser!.FirstName).ToListAsync());
         }
 
+        // Clinic manager can view detailed information about a doctor, including their profile, specializations, schedule, and leave history. This view also provides quick access to manage the doctor's account status, specializations, schedule, and leave requests
         public async Task<IActionResult> DoctorDetails(int id)
         {
             var doctor = await _context.DoctorProfiles
@@ -114,7 +119,7 @@ namespace ClinicMVC.Controllers
             ViewBag.AllSpecializations = await _context.Specializations.ToListAsync();
             return View(doctor);
         }
-
+        // Clinic manager can activate or deactivate a doctor's account, but cannot delete it to maintain historical data integrity. Deactivating a doctor will automatically cancel any of their upcoming appointments and notify the patients of the cancellations
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleDoctorStatus(int id)
@@ -141,6 +146,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("DoctorDetails", new { id });
         }
 
+        // Clinic manager can assign specializations to a doctor, but cannot assign the same specialization multiple times to the same doctor
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddSpecialization(int doctorId, int specializationId)
@@ -167,6 +173,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("DoctorDetails", new { id = doctorId });
         }
 
+        // Clinic manager can remove a specialization from a doctor, but cannot remove all specializations to ensure doctors have at least one area of expertise
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RemoveSpecialization(int doctorId, int doctorSpecializationId)
@@ -182,6 +189,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("DoctorDetails", new { id = doctorId });
         }
 
+        // Clinic manager can view and manage a doctor's weekly schedule, including adding, updating, or deleting schedule days. Any changes to the schedule will automatically cancel any of the doctor's appointments that fall outside the new schedule and notify the patients of the cancellations
         public async Task<IActionResult> ManageSchedule(int doctorId)
         {
             var doctor = await _context.DoctorProfiles
@@ -203,7 +211,7 @@ namespace ClinicMVC.Controllers
             ViewBag.Schedules = schedules;
             return View();
         }
-
+        // Clinic manager can add or update a schedule day for a doctor, which will automatically cancel any of the doctor's appointments that fall outside the new schedule and notify the patients of the cancellations
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> SaveSchedule(
@@ -246,7 +254,7 @@ namespace ClinicMVC.Controllers
             TempData["Success"] = "Schedule saved successfully.";
             return RedirectToAction("ManageSchedule", new { doctorId });
         }
-
+        // Clinic manager can delete a schedule day, which will automatically cancel any of the doctor's appointments that fall on that day and notify the patients of the cancellations
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteSchedule(int scheduleId, int doctorId)
@@ -262,6 +270,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("ManageSchedule", new { doctorId });
         }
 
+        // View for clinic manager to see all leave requests with filtering options
         public async Task<IActionResult> LeaveRequests(string filter = "pending")
         {
             var query = _context.DoctorLeaves
@@ -283,7 +292,7 @@ namespace ClinicMVC.Controllers
 
             return View(await query.OrderBy(l => l.StartDate).ToListAsync());
         }
-
+        // Clinic manager can approve leave requests, which will automatically cancel any of the doctor's appointments that fall within the leave period and notify the patients of the cancellations
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ApproveLeave(int leaveId, string? notes)
@@ -388,7 +397,7 @@ namespace ClinicMVC.Controllers
 
             return RedirectToAction("LeaveRequests");
         }
-
+        // Clinic manager can reject leave requests with an optional reason, and the doctor will be notified of the rejection and the reason if provided
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> RejectLeave(int leaveId, string rejectionReason)
@@ -439,6 +448,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("LeaveRequests");
         }
 
+        // View for clinic manager to see all specializations and manage them
         public async Task<IActionResult> Specializations()
         {
             var specs = await _context.Specializations
@@ -449,6 +459,7 @@ namespace ClinicMVC.Controllers
             return View(specs);
         }
 
+        // Clinic manager can add new specializations to the system, but cannot edit existing ones to maintain data integrity
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddNewSpecialization(string name, string? description)
@@ -479,6 +490,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("Specializations");
         }
 
+        // Clinic manager can only delete specializations that are not assigned to any doctor
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteSpecialization(int id)
@@ -505,6 +517,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("Specializations");
         }
 
+        // View for clinic manager to see all patients with search capabilities
         public async Task<IActionResult> Patients(string? search)
         {
             var query = _context.PatientProfiles
@@ -526,6 +539,7 @@ namespace ClinicMVC.Controllers
             return View(await query.OrderBy(p => p.AspNetUser!.FirstName).ToListAsync());
         }
 
+        // View for clinic manager to see all appointments with filtering and search capabilities
         public async Task<IActionResult> AllAppointments(
             string filter = "today",
             string? status = null,
@@ -575,6 +589,7 @@ namespace ClinicMVC.Controllers
                 .ToListAsync());
         }
 
+        // View for clinic manager to see all their notifications and mark them as read
         public async Task<IActionResult> Notifications()
         {
             var user = await GetCurrentUserAsync();
@@ -600,6 +615,7 @@ namespace ClinicMVC.Controllers
             return View(notifications);
         }
 
+        // Clinic manager dashboard for managing doctors, receptionists, and other staff accounts
         public async Task<IActionResult> StaffManagement()
         {
             var doctors = await _userManager.GetUsersInRoleAsync("Doctor");
@@ -619,6 +635,7 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
+        // Handle creation of new doctor or receptionist accounts
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> CreateStaff(
@@ -696,6 +713,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("StaffManagement");
         }
 
+        // Display edit form for doctor or receptionist
         public async Task<IActionResult> EditStaff(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -718,6 +736,7 @@ namespace ClinicMVC.Controllers
             return View(user);
         }
 
+        // Save edits to doctor or receptionist profile
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditStaff(
@@ -762,6 +781,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("StaffManagement");
         }
 
+        // Toggle active status for doctors and receptionists
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleStaffActive(string id)
@@ -797,6 +817,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("StaffManagement");
         }
 
+        /// Helper method to get the currently logged-in user
         private async Task<ApplicationUser?> GetCurrentUserAsync()
         {
             return await _userManager.GetUserAsync(User);

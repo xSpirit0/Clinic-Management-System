@@ -28,7 +28,7 @@
                 <form asp-action="CreateStaff" method="post">
                     @Html.AntiForgeryToken()
 
-                    @* Role Selector *@
+                    
                     <div class="mb-4">
                         <label class="form-label fw-600" style="font-size:14px;">Role <span class="text-danger">*</span></label>
                         <div class="d-flex gap-3">
@@ -55,7 +55,7 @@
                         </div>
                     </div>
 
-                    @* Name Row *@
+                   
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label for="firstName" class="form-label" style="font-size:14px;font-weight:500;">
@@ -73,7 +73,7 @@
                         </div>
                     </div>
 
-                    @* Email *@
+                    
                     <div class="mb-3">
                         <label for="email" class="form-label" style="font-size:14px;font-weight:500;">
                             Email <span class="text-danger">*</span>
@@ -83,7 +83,7 @@
                         <div class="form-text">This will be used as the login email and cannot be changed later.</div>
                     </div>
 
-                    @* Phone *@
+                    
                     <div class="mb-3">
                         <label for="phoneNumber" class="form-label" style="font-size:14px;font-weight:500;">
                             Phone Number <span class="text-danger">*</span>
@@ -92,7 +92,7 @@
                                placeholder="e.g. +97333123456" required />
                     </div>
 
-                    @* Password *@
+                    
                     <div class="mb-3">
                         <label for="password" class="form-label" style="font-size:14px;font-weight:500;">
                             Temporary Password <span class="text-danger">*</span>
@@ -102,7 +102,7 @@
                         <div class="form-text">Staff member should change this after first login.</div>
                     </div>
 
-                    @* Doctor-only fields *@
+                   
                     <div id="doctorFields">
                         <hr style="border-color:var(--border);" />
                         <p class="text-muted mb-3" style="font-size:13px;">
@@ -143,18 +143,18 @@
         document.getElementById('doctorFields').style.display = isDr ? 'block' : 'none';
         document.getElementById('licenseNumber').required = isDr;
 
-        // Visual card highlight
+        
         document.querySelector('label[for="roleDoctor"]').style.borderColor = isDr ? 'var(--primary)' : 'var(--border)';
         document.querySelector('label[for="roleDoctor"]').style.background = isDr ? 'var(--primary-light)' : '';
         document.querySelector('label[for="roleReceptionist"]').style.borderColor = !isDr ? 'var(--warning)' : 'var(--border)';
         document.querySelector('label[for="roleReceptionist"]').style.background = !isDr ? '#fff3e0' : '';
     }
 
-    // Wire up radio buttons for label styling
+   
     document.getElementById('roleDoctor').addEventListener('change', toggleDoctorFields);
     document.getElementById('roleReceptionist').addEventListener('change', toggleDoctorFields);
 
-    // Set initial state
+    
     toggleDoctorFields();
 </script>
 }

@@ -2,11 +2,9 @@ using ClinicAPI.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using ClinicMVC.Services;
+// This is the main entry point for the ClinicMVC application. It sets up the web application, configures services, and defines the middleware pipeline. The code uses the minimal hosting model introduced in .NET 6, which simplifies the setup of ASP.NET Core applications. The application is configured to use MVC controllers with views, Entity Framework Core for database access, and ASP.NET Identity for authentication and authorization. Additionally, it registers a custom notification service and configures an HttpClient for making API calls to a clinic API.
 var builder = WebApplication.CreateBuilder(args);
 
-// =====================
-// Add services
-// =====================
 
 // Add MVC controllers and views to the service container
 builder.Services.AddControllersWithViews();
@@ -35,8 +33,8 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     options.User.RequireUniqueEmail = true;
     options.SignIn.RequireConfirmedAccount = false;
 })
-    .AddRoles<IdentityRole>()                        // Add support for roles
-    .AddEntityFrameworkStores<ClinicDbContext>();     // Use EF Core for Identity
+    .AddRoles<IdentityRole>()                        
+    .AddEntityFrameworkStores<ClinicDbContext>();     
 
 // Configure the application cookie
 builder.Services.ConfigureApplicationCookie(options =>
@@ -63,14 +61,10 @@ builder.Services.AddHttpClient("ClinicApi", client =>
 // Generic HttpClient registration (kept for any unnamed factory usage)
 builder.Services.AddHttpClient();
 
-// =====================
-// Build app (ONLY ONCE)
-// =====================
+// Build the application
 var app = builder.Build();
 
-// =====================
-// Configure middleware
-// =====================
+
 
 // If not in development, use custom error page and HSTS for security
 if (!app.Environment.IsDevelopment())
@@ -92,9 +86,6 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// =====================
-// Routing
-// =====================
 
 // Default MVC route
 app.MapControllerRoute(
@@ -105,7 +96,5 @@ app.MapControllerRoute(
 // Razor Pages endpoints (needed for Identity scaffolded pages)
 app.MapRazorPages();
 
-// =====================
-// Run app
-// =====================
+//  Run the application
 app.Run();

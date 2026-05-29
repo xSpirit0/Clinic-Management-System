@@ -27,6 +27,8 @@ namespace ClinicMVC.Controllers
             _notificationService = notificationService;
         }
 
+        // Logged-in user -> their DoctorProfile. Everything filters on DoctorId, so I
+        // resolve it once and the actions bail to login if there's no profile.
         private async Task<DoctorProfile?> GetCurrentDoctorAsync()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -57,6 +59,8 @@ namespace ClinicMVC.Controllers
                 .OrderBy(a => a.SlotStartTime)
                 .ToListAsync();
 
+            // Counting in memory off the list I already loaded instead of firing more
+            // queries - these all come from todayAppointments.
             var totalToday = todayAppointments.Count;
             var completedToday = todayAppointments
                 .Count(a => a.AppointmentStatus.AppointmentStatus1 == "Completed");
@@ -67,6 +71,7 @@ namespace ClinicMVC.Controllers
                             a.AppointmentStatus.AppointmentStatus1 == "Confirmed" ||
                             a.AppointmentStatus.AppointmentStatus1 == "CheckedIn");
 
+            // Next 7 days, skipping the dead ones (cancelled/missed) so the panel stays useful.
             var upcomingWeek = await _context.Appointments
                 .Include(a => a.Patient)
                     .ThenInclude(p => p.AspNetUser)
@@ -94,6 +99,7 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
+        // filter = today/upcoming/past/all (date range), status = optional status filter on top.
         public async Task<IActionResult> MyAppointments(string filter = "today", string? status = null)
         {
             var doctor = await GetCurrentDoctorAsync();
@@ -105,6 +111,7 @@ namespace ClinicMVC.Controllers
 
             var today = DateOnly.FromDateTime(DateTime.Today);
 
+            // Build the query in steps and only hit the DB at the ToListAsync at the end.
             var query = _context.Appointments
                 .Include(a => a.Patient)
                     .ThenInclude(p => p.AspNetUser)
@@ -131,6 +138,7 @@ namespace ClinicMVC.Controllers
                 .ThenBy(a => a.SlotStartTime)
                 .ToListAsync();
 
+            // Pass the current selections back so the filter dropdowns stay on what was picked.
             ViewBag.CurrentFilter = filter;
             ViewBag.CurrentStatus = status ?? "all";
 
@@ -150,6 +158,8 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            // DoctorId in the filter stops a doctor opening an appointment that isn't theirs.
+            // Also pulling the status history (newest first) for the timeline on the page.
             var appointment = await _context.Appointments
                 .Include(a => a.Patient)
                     .ThenInclude(p => p.AspNetUser)
@@ -204,6 +214,7 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("AppointmentDetails", new { id });
             }
 
+            // Don't let the status jump around - only the moves in IsValidTransition are allowed.
             var currentStatus = appointment.AppointmentStatus.AppointmentStatus1;
             if (!IsValidTransition(currentStatus, newStatus))
             {
@@ -224,13 +235,15 @@ namespace ClinicMVC.Controllers
             });
 
             await _context.SaveChangesAsync();
-            await NotifyWaitingRoomAsync();
+            await NotifyWaitingRoomAsync();                            // refresh the live board
             await SendStatusChangeNotificationsAsync(appointment, newStatus);
 
             TempData["Success"] = $"Appointment status updated to '{newStatus}'.";
             return RedirectToAction("AppointmentDetails", new { id });
         }
 
+        // The appointment workflow as a simple state machine. Each tuple is an allowed
+        // (current -> next) move; everything else returns false and gets blocked above.
         private bool IsValidTransition(string from, string to)
         {
             return (from, to) switch
@@ -270,6 +283,7 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("MyAppointments");
             }
 
+            // No point writing notes for a visit that hasn't started yet.
             if (appointment.AppointmentStatus.AppointmentStatus1 != "InProgress" &&
                 appointment.AppointmentStatus.AppointmentStatus1 != "Completed")
             {
@@ -307,9 +321,12 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("MyAppointments");
             }
 
+            // Remember whether it was already Completed - I use this later to avoid
+            // re-notifying the patient every time the doctor edits the notes.
             bool wasAlreadyCompleted =
                 appointment.AppointmentStatus.AppointmentStatus1 == "Completed";
 
+            // One visit record per appointment: update it if it exists, otherwise create it.
             if (appointment.VisitRecord != null)
             {
                 appointment.VisitRecord.DoctorNotes = doctorNotes;
@@ -330,6 +347,7 @@ namespace ClinicMVC.Controllers
                 _context.VisitRecords.Add(visit);
             }
 
+            // Writing the record is what flips the appointment to Completed (first time only).
             if (!wasAlreadyCompleted)
             {
                 var completedStatus = await _context.AppointmentStatuses
@@ -353,6 +371,7 @@ namespace ClinicMVC.Controllers
             await _context.SaveChangesAsync();
             await NotifyWaitingRoomAsync();
 
+            // Only ping the patient on the first completion, not on later edits.
             if (!wasAlreadyCompleted)
             {
                 await _notificationService.SendAsync(
@@ -423,6 +442,8 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("MyAppointments");
             }
 
+            // The form posts each column as a parallel list (row 0 across all lists is one
+            // medication, etc). Keep only the rows where a name was actually typed.
             var validIndexes = new List<int>();
             for (int i = 0; i < medicationName.Count; i++)
             {
@@ -445,6 +466,7 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("AddPrescription", new { visitRecordId });
             }
 
+            // Build the prescription with its items from the kept rows in one go.
             var prescription = new Prescription
             {
                 VisitRecordId = visitRecordId,
@@ -485,6 +507,7 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            // Distinct patients I've had at least one appointment with, sorted by name.
             var patients = await _context.Appointments
                 .Where(a => a.DoctorId == doctor.DoctorId)
                 .Include(a => a.Patient)
@@ -507,6 +530,8 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
+            // Privacy guard: a doctor can only see the history of a patient they've actually
+            // treated, so check there's a shared appointment before showing anything.
             var hasSeen = await _context.Appointments
                 .AnyAsync(a => a.PatientId == id && a.DoctorId == doctor.DoctorId);
 
@@ -526,6 +551,7 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("MyPatients");
             }
 
+            // Their full appointment history (across every doctor, not just me).
             var appointments = await _context.Appointments
                 .Include(a => a.Doctor)
                     .ThenInclude(d => d.AspNetUser)
@@ -591,6 +617,7 @@ namespace ClinicMVC.Controllers
 
             var today = DateOnly.FromDateTime(DateTime.Today);
 
+            // Basic date sanity checks before anything touches the DB.
             if (startDate < today)
                 ModelState.AddModelError("startDate", "Start date cannot be in the past.");
 
@@ -599,6 +626,7 @@ namespace ClinicMVC.Controllers
 
             if (ModelState.IsValid)
             {
+                // Don't allow a new request that overlaps one that's already pending/approved.
                 var overlap = await _context.DoctorLeaves
                     .Include(l => l.LeaveStatus)
                     .AnyAsync(l => l.DoctorId == doctor.DoctorId &&
@@ -623,6 +651,7 @@ namespace ClinicMVC.Controllers
                 return View();
             }
 
+            // New leave always starts Pending - a manager approves or rejects it later.
             var leave = new DoctorLeave
             {
                 DoctorId = doctor.DoctorId,
@@ -635,6 +664,8 @@ namespace ClinicMVC.Controllers
             _context.DoctorLeaves.Add(leave);
             await _context.SaveChangesAsync();
 
+            // Notify every clinic manager so someone picks it up. Look up the role, grab the
+            // users in it, then send each one a notification.
             var managerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "ClinicManager");
             if (managerRole != null)
             {
@@ -679,6 +710,7 @@ namespace ClinicMVC.Controllers
                 .OrderByDescending(n => n.CreatedAt)
                 .ToListAsync();
 
+            // Viewing the page marks everything read (only saving if there was anything unread).
             var unread = notifications.Where(n => !n.IsRead).ToList();
             if (unread.Any())
             {
@@ -690,10 +722,12 @@ namespace ClinicMVC.Controllers
             return View(notifications);
         }
 
+        // Sends the right notification(s) after a status change. Not every status is worth
+        // a message - the ones not listed in the switches just fall through silently.
         private async Task SendStatusChangeNotificationsAsync(
      Appointment appointment, string newStatus)
         {
-            // --- Patient notification ---
+            //  Patient notification 
             var patientAspNetUserId = appointment.Patient?.AspNetUserId;
             if (!string.IsNullOrEmpty(patientAspNetUserId))
             {
@@ -729,7 +763,7 @@ namespace ClinicMVC.Controllers
                         appointmentId: appointment.AppointmentId);
             }
 
-            
+            // Doctor notification (only InProgress for now, as a "consultation started" ping) 
             var doctorProfile = await _context.DoctorProfiles
                 .FirstOrDefaultAsync(d => d.DoctorId == appointment.DoctorId);
 
@@ -756,6 +790,8 @@ namespace ClinicMVC.Controllers
             }
         }
 
+        // Pokes the SignalR hub on the API so the waiting-room screen refreshes. Fire and
+        // forget - if the API is down the status change has already saved, so just log it.
         private async Task NotifyWaitingRoomAsync()
         {
             try

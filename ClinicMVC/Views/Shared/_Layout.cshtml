@@ -375,7 +375,7 @@
             font-family: var(--font-display);
         }
 
-        /* ── ALERTS ── */
+       
         .alert {
             border: none !important;
             border-radius: var(--radius) !important;
@@ -402,7 +402,7 @@
             color: #1e40af !important;
         }
 
-        /* ── STAT CARDS ── */
+        
         .stat-card {
             background: var(--white);
             border: 1px solid var(--border);
@@ -452,7 +452,7 @@
                 font-weight: 500;
             }
 
-        /* ── PAGE HEADER ── */
+       
         .page-header {
             margin-bottom: 1.75rem;
         }
@@ -471,14 +471,14 @@
                 margin: 0;
             }
 
-        /* ── MAIN ── */
+        
         main {
             flex: 1;
             padding: 2rem 0 3rem;
             min-height: 60vh;
         }
 
-        /* ── FOOTER ── */
+        
         footer {
             background: var(--white);
             border-top: 1px solid var(--border);
@@ -487,7 +487,7 @@
             color: var(--text-light);
         }
 
-        /* ── ACCORDION ── */
+       
         .accordion-item {
             border: 1px solid var(--border) !important;
             border-radius: var(--radius) !important;
@@ -509,13 +509,13 @@
                 box-shadow: none !important;
             }
 
-        /* ── LIST GROUPS ── */
+       
         .list-group-item {
             border-color: var(--border) !important;
             font-size: 14px;
         }
 
-        /* ── MODAL ── */
+       
         .modal-content {
             border: none !important;
             border-radius: var(--radius) !important;
@@ -527,7 +527,7 @@
             font-family: var(--font-display);
         }
 
-        /* ── MOBILE MENU ── */
+        
         .mobile-nav-open {
             overflow: hidden;
         }
@@ -549,7 +549,7 @@
 </head>
 <body>
 
-    <!-- ── CUSTOM NAVBAR (only one, no Bootstrap default) ── -->
+ 
     <nav class="clinic-navbar">
         <a class="navbar-brand" asp-controller="Home" asp-action="Index">
             <span class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></span>
@@ -557,13 +557,13 @@
         </a>
 
         <div class="nav-links">
-            @* Show Home only when NOT logged in *@
+          
             @if (User.Identity == null || !User.Identity.IsAuthenticated)
             {
                 <a asp-controller="Home" asp-action="Index">Home</a>
             }
 
-            @* Patient links *@
+            
             @if (User.IsInRole("Patient"))
             {
                 <a asp-controller="Patient" asp-action="Dashboard">Dashboard</a>
@@ -572,7 +572,7 @@
                 <a asp-controller="Patient" asp-action="MyPrescriptions">Prescriptions</a>
             }
 
-            @* Doctor links *@
+           
             @if (User.IsInRole("Doctor"))
             {
                 <a asp-controller="Doctor" asp-action="Dashboard">Dashboard</a>
@@ -581,7 +581,7 @@
                 <a asp-controller="Doctor" asp-action="MySchedule">Schedule</a>
             }
 
-            @* Receptionist links *@
+            
             @if (User.IsInRole("Receptionist"))
             {
                 <a asp-controller="Receptionist" asp-action="Dashboard">Dashboard</a>
@@ -590,7 +590,7 @@
                 <a asp-controller="Receptionist" asp-action="BookAppointment">Book</a>
             }
 
-            @* Clinic Manager links *@
+            
             @if (User.IsInRole("ClinicManager"))
             {
                 <a asp-controller="ClinicManager" asp-action="Dashboard">Dashboard</a>
@@ -604,7 +604,7 @@
         <div class="nav-right">
             @if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                @* Notifications bell *@
+                
                 @if (User.IsInRole("Patient"))
                 {
                     <a asp-controller="Patient" asp-action="Notifications"
@@ -634,7 +634,7 @@
                     </a>
                 }
 
-                @* User badge *@
+               
                 <div class="nav-user-badge">
                     <div class="nav-avatar">
                         @(User.Identity.Name?.Length > 0 ? User.Identity.Name[0].ToString().ToUpper() : "U")
@@ -675,14 +675,14 @@
         </div>
     </nav>
 
-    <!-- ── MAIN CONTENT ── -->
+   
     <main>
         <div class="container">
             @RenderBody()
         </div>
     </main>
 
-    <!-- ── FOOTER ── -->
+   
     <footer>
         <div class="container d-flex justify-content-between align-items-center">
             <span>&copy; 2026 Spirit Clinic — All rights reserved.</span>

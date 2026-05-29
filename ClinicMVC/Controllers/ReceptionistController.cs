@@ -7,14 +7,16 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicMVC.Controllers
 {
-    [Authorize(Roles = "Receptionist,ClinicManager")]
+    [Authorize(Roles = "Receptionist,ClinicManager")] // Only users in the Receptionist or ClinicManager roles can access this controller
     public class ReceptionistController : Controller
     {
+        // Dependencies for database access, user management, HTTP requests, and notifications
         private readonly ClinicDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly INotificationService _notificationService;
 
+        // Constructor to inject dependencies
         public ReceptionistController(
             ClinicDbContext context,
             UserManager<ApplicationUser> userManager,
@@ -27,6 +29,7 @@ namespace ClinicMVC.Controllers
             _notificationService = notificationService;
         }
 
+        // This is the main dashboard for the receptionist, showing an overview of today's appointments, including counts of total, pending, checked-in, and completed appointments. It also shows a list of today's appointments with key details and a link to view more information. Additionally, it displays any unread notifications for the receptionist.
         public async Task<IActionResult> Dashboard()
         {
             var user = await GetCurrentUserAsync();
@@ -71,6 +74,7 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
+        // This page shows a list of appointments with filters for date range (today, upcoming, past, all), status, and a search box for patient name or CPR number. The receptionist can click on an appointment to view details and update the status if needed.
         public async Task<IActionResult> AllAppointments(
             string filter = "today",
             string? status = null,
@@ -124,6 +128,7 @@ namespace ClinicMVC.Controllers
             return View(appointments);
         }
 
+        //  This page shows detailed information about a specific appointment, including the patient's profile, the doctor's profile, the specialization, the current status, and the history of status changes. It also includes a form for updating the status if the receptionist has permission to do so.
         public async Task<IActionResult> AppointmentDetails(int id)
         {
             var appointment = await _context.Appointments
@@ -148,6 +153,7 @@ namespace ClinicMVC.Controllers
             return View(appointment);
         }
 
+        // This action handles the form submission for updating the appointment status. It checks if the transition is valid for the receptionist role, updates the status, logs the change in the history table, and sends notifications to the patient and doctor if necessary.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateStatus(int id, string newStatus, string? notes)
@@ -207,6 +213,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("AppointmentDetails", new { id });
         }
 
+        // This method defines which status transitions are allowed for the receptionist role. For example, they can confirm a requested appointment, check in a confirmed appointment, or cancel an appointment that is still pending.
         private bool IsValidReceptionistTransition(string from, string to)
         {
             return (from, to) switch
@@ -221,6 +228,7 @@ namespace ClinicMVC.Controllers
             };
         }
 
+        // This page allows the receptionist to search for patients by name, CPR number, or patient reference number. The search results show basic profile information and a link to view the full profile and appointment history.
         public async Task<IActionResult> SearchPatient(string? query)
         {
             var patients = new List<PatientProfile>();
@@ -244,6 +252,7 @@ namespace ClinicMVC.Controllers
             return View(patients);
         }
 
+        // This page shows the patient's profile information and a list of their upcoming and recent appointments, with links to view details for each appointment.
         public async Task<IActionResult> PatientProfile(int id)
         {
             var patient = await _context.PatientProfiles
@@ -270,6 +279,7 @@ namespace ClinicMVC.Controllers
             return View(patient);
         }
 
+        // This page shows the booking form where the receptionist can select a patient (or leave it blank to create a new one), choose a specialization, doctor, date, and time slot, and enter the reason for the visit. The form uses AJAX to dynamically load doctors based on the selected specialization and available time slots based on the selected doctor and date.
         public async Task<IActionResult> BookAppointment(int? patientId)
         {
             PatientProfile? patient = null;
@@ -292,6 +302,7 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
+        // This endpoint is called by the booking form via AJAX when the receptionist selects a specialization, to populate the doctor dropdown with only those doctors who have that specialization and are currently active.
         public async Task<IActionResult> GetDoctorsBySpecialization(int specializationId)
         {
             var doctors = await _context.DoctorSpecializations
@@ -311,10 +322,11 @@ namespace ClinicMVC.Controllers
             return Json(doctors);
         }
 
+        // This endpoint is called by the booking form via AJAX when the receptionist selects a doctor and date, to get the available time slots for that doctor on that day. It checks the doctor's schedule, any approved leaves, and existing appointments to determine which slots are still open.
         public async Task<IActionResult> GetAvailableSlots(int doctorId, DateOnly date)
         {
             int dayOfWeek = (int)date.DayOfWeek;
-
+            // Get the doctor's schedule for that day of the week.
             var schedule = await _context.DoctorSchedules
                 .FirstOrDefaultAsync(s => s.DoctorId == doctorId &&
                                      s.DayOfWeek == dayOfWeek &&
@@ -336,7 +348,7 @@ namespace ClinicMVC.Controllers
 
             if (isOnLeave)
                 return Json(new List<object>());
-
+            // Get all booked slots for that doctor and date, excluding cancelled and missed appointments.
             var bookedSlots = await _context.Appointments
                 .Include(a => a.AppointmentStatus)
                 .Where(a => a.DoctorId == doctorId &&
@@ -369,6 +381,7 @@ namespace ClinicMVC.Controllers
             return Json(slots);
         }
 
+        // This action handles the form submission for booking a new appointment. It performs server-side validation to ensure the slot is still available and then creates the appointment with a "Confirmed" status. It also sends notifications to the patient and doctor about the new appointment.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> BookAppointment(
@@ -405,6 +418,7 @@ namespace ClinicMVC.Controllers
                          a.AppointmentStatus.AppointmentStatus1 != "Cancelled" &&
                          a.AppointmentStatus.AppointmentStatus1 != "Missed");
 
+            // Double-check if the doctor is on leave for that day, in case their schedule was updated after the receptionist loaded the booking page.
             if (isBooked)
             {
                 TempData["Error"] = "This slot is no longer available. Please choose another.";
@@ -448,6 +462,7 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
 
+            // Send notification to patient about the new appointment.
             await _notificationService.SendAsync(
                 aspNetUserId: patient.AspNetUserId,
                 notificationTypeName: "AppointmentConfirmed",
@@ -478,6 +493,7 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("PatientProfile", new { id = patientId });
         }
 
+        // This page is displayed on a TV screen in the waiting room, showing the status of today's appointments.
         [AllowAnonymous]
         public async Task<IActionResult> WaitingRoomBoard()
         {
@@ -510,6 +526,7 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
+        // This page shows all notifications for the logged-in user, with unread ones highlighted. When the receptionist visits this page, all their unread notifications will be marked as read.
         public async Task<IActionResult> Notifications()
         {
             var user = await GetCurrentUserAsync();
@@ -540,8 +557,8 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("Dashboard");
         }
 
-        // ==================== HELPERS ====================
-
+        // HELPERS 
+        // Get the currently logged-in user from the database, including their profile information.
         private async Task<ApplicationUser?> GetCurrentUserAsync()
         {
             return await _userManager.GetUserAsync(User);
@@ -550,7 +567,8 @@ namespace ClinicMVC.Controllers
         private async Task SendStatusChangeNotificationsAsync(
             Appointment appointment, string newStatus)
         {
-            // --- Patient notification ---
+            //  Patient notification 
+            // Only notify for key status changes that the patient should be aware of. For example, "CheckedIn" is important for the patient to know, but "InProgress" might not be necessary as they are already in the clinic.
             var patientAspNetUserId = appointment.Patient?.AspNetUserId;
             if (!string.IsNullOrEmpty(patientAspNetUserId))
             {
@@ -592,7 +610,8 @@ namespace ClinicMVC.Controllers
                         appointmentId: appointment.AppointmentId);
             }
 
-            // --- Doctor notification ---
+            // Doctor notification 
+            // Only notify for cancellations and missed appointments, as other status changes are typically handled by the doctor themselves.
             var doctorProfile = await _context.DoctorProfiles
                 .FirstOrDefaultAsync(d => d.DoctorId == appointment.DoctorId);
 
@@ -625,6 +644,7 @@ namespace ClinicMVC.Controllers
             }
         }
 
+        // This endpoint is called by the waiting room board via AJAX every 30 seconds to get the latest data.
         [AllowAnonymous]
         public async Task<IActionResult> WaitingRoomData()
         {
@@ -662,6 +682,8 @@ namespace ClinicMVC.Controllers
                 completed = todayAppointments.Where(a => a.status == "Completed")
             });
         }
+
+        // This method is called after any status change that could affect the waiting room display.
         private async Task NotifyWaitingRoomAsync()
         {
             try
