@@ -194,5 +194,51 @@ namespace ClinicReporting.Controllers
             ViewBag.FullName = HttpContext.Session.GetString("FullName");
             return View(report);
         }
+
+        public async Task<IActionResult> TodayAppointments()
+        {
+            var auth = CheckAuth();
+            if (auth != null) return auth;
+
+            var client = GetAuthenticatedClient();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            var response = await client.GetAsync("/api/reports/appointments/today");
+            if (!response.IsSuccessStatusCode)
+            {
+                ViewBag.Error = "Could not load today's appointments.";
+                ViewBag.FullName = HttpContext.Session.GetString("FullName");
+                return View(new TodayAppointmentsReport());
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var report = JsonSerializer.Deserialize<TodayAppointmentsReport>(json, options);
+
+            ViewBag.FullName = HttpContext.Session.GetString("FullName");
+            return View(report);
+        }
+
+        public async Task<IActionResult> UpcomingAppointments(int days = 7)
+        {
+            var auth = CheckAuth();
+            if (auth != null) return auth;
+
+            var client = GetAuthenticatedClient();
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+            var response = await client.GetAsync($"/api/reports/appointments/upcoming?days={days}");
+            if (!response.IsSuccessStatusCode)
+            {
+                ViewBag.Error = "Could not load upcoming appointments.";
+                ViewBag.FullName = HttpContext.Session.GetString("FullName");
+                return View(new UpcomingAppointmentsReport());
+            }
+
+            var json = await response.Content.ReadAsStringAsync();
+            var report = JsonSerializer.Deserialize<UpcomingAppointmentsReport>(json, options);
+
+            ViewBag.FullName = HttpContext.Session.GetString("FullName");
+            return View(report);
+        }
     }
 }

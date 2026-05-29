@@ -34,9 +34,7 @@
             --sidebar-width: 250px;
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             font-family: var(--font-body);
@@ -46,11 +44,8 @@
             min-height: 100vh;
         }
 
-        h1, h2, h3, h4, h5, h6 {
-            font-family: var(--font-display);
-        }
+        h1, h2, h3, h4, h5, h6 { font-family: var(--font-display); }
 
-        /* ── SIDEBAR ── */
         .report-sidebar {
             width: var(--sidebar-width);
             min-height: 100vh;
@@ -74,37 +69,35 @@
             text-decoration: none;
         }
 
-            .sidebar-brand .brand-icon {
-                width: 34px;
-                height: 34px;
-                background: var(--primary);
-                border-radius: 9px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                color: white;
-                font-size: 17px;
-                flex-shrink: 0;
-            }
+        .sidebar-brand .brand-icon {
+            width: 34px;
+            height: 34px;
+            background: var(--primary);
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 17px;
+            flex-shrink: 0;
+        }
 
-            .sidebar-brand .brand-text {
-                font-family: var(--font-display);
-                font-size: 15px;
-                font-weight: 700;
-                color: var(--text-dark);
-                line-height: 1.2;
-            }
+        .sidebar-brand .brand-text {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text-dark);
+            line-height: 1.2;
+        }
 
-                .sidebar-brand .brand-text span {
-                    color: var(--primary);
-                }
+        .sidebar-brand .brand-text span { color: var(--primary); }
 
-            .sidebar-brand .brand-sub {
-                font-size: 11px;
-                color: var(--text-light);
-                font-weight: 400;
-                font-family: var(--font-body);
-            }
+        .sidebar-brand .brand-sub {
+            font-size: 11px;
+            color: var(--text-light);
+            font-weight: 400;
+            font-family: var(--font-body);
+        }
 
         .sidebar-nav {
             flex: 1;
@@ -136,48 +129,47 @@
             margin-bottom: 2px;
         }
 
-            .sidebar-nav a i {
-                font-size: 16px;
-                width: 20px;
-                text-align: center;
-                flex-shrink: 0;
-            }
+        .sidebar-nav a i {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+            flex-shrink: 0;
+        }
 
-            .sidebar-nav a:hover {
-                background: var(--primary-light);
-                color: var(--primary);
-            }
+        .sidebar-nav a:hover {
+            background: var(--primary-light);
+            color: var(--primary);
+        }
 
-            .sidebar-nav a.active {
-                background: var(--primary-light);
-                color: var(--primary);
-                font-weight: 600;
-            }
+        .sidebar-nav a.active {
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 600;
+        }
 
         .sidebar-footer {
             padding: 12px 10px;
             border-top: 1px solid var(--border);
         }
 
-            .sidebar-footer a {
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                padding: 9px 12px;
-                border-radius: var(--radius-sm);
-                text-decoration: none;
-                font-size: 14px;
-                font-weight: 500;
-                color: var(--text-mid);
-                transition: all 0.15s;
-            }
+        .sidebar-footer a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 12px;
+            border-radius: var(--radius-sm);
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-mid);
+            transition: all 0.15s;
+        }
 
-                .sidebar-footer a:hover {
-                    background: #fef2f2;
-                    color: var(--danger);
-                }
+        .sidebar-footer a:hover {
+            background: #fef2f2;
+            color: var(--danger);
+        }
 
-        /* ── MAIN CONTENT ── */
         .report-main {
             margin-left: var(--sidebar-width);
             min-height: 100vh;
@@ -185,7 +177,6 @@
             flex-direction: column;
         }
 
-        /* ── TOP BAR ── */
         .report-topbar {
             background: var(--white);
             border-bottom: 1px solid var(--border);
@@ -200,39 +191,39 @@
             box-shadow: var(--shadow-sm);
         }
 
-            .report-topbar .page-title {
-                font-family: var(--font-display);
-                font-size: 17px;
-                font-weight: 600;
-                color: var(--text-dark);
-                margin: 0;
-            }
+        .report-topbar .page-title {
+            font-family: var(--font-display);
+            font-size: 17px;
+            font-weight: 600;
+            color: var(--text-dark);
+            margin: 0;
+        }
 
-            .report-topbar .user-info {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                padding: 5px 12px 5px 5px;
-                border: 1px solid var(--border);
-                border-radius: 99px;
-                font-size: 13px;
-                font-weight: 500;
-                color: var(--text-dark);
-                background: var(--white);
-            }
+        .report-topbar .user-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 12px 5px 5px;
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-dark);
+            background: var(--white);
+        }
 
-            .report-topbar .user-avatar {
-                width: 28px;
-                height: 28px;
-                border-radius: 50%;
-                background: var(--primary);
-                color: white;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 11px;
-                font-weight: 700;
-            }
+        .report-topbar .user-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-weight: 700;
+        }
 
         .role-badge {
             font-size: 11px;
@@ -244,13 +235,8 @@
             font-family: var(--font-display);
         }
 
-        /* ── PAGE BODY ── */
-        .report-body {
-            flex: 1;
-            padding: 2rem;
-        }
+        .report-body { flex: 1; padding: 2rem; }
 
-        /* ── CARDS ── */
         .card {
             border: 1px solid var(--border) !important;
             border-radius: var(--radius) !important;
@@ -267,7 +253,6 @@
             border-radius: var(--radius) var(--radius) 0 0 !important;
         }
 
-        /* ── STAT CARDS ── */
         .stat-card {
             background: var(--white);
             border: 1px solid var(--border);
@@ -277,77 +262,57 @@
             overflow: hidden;
         }
 
-            .stat-card::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 4px;
-                height: 100%;
-            }
-
-            .stat-card.blue::before {
-                background: var(--primary);
-            }
-
-            .stat-card.green::before {
-                background: var(--success);
-            }
-
-            .stat-card.amber::before {
-                background: var(--warning);
-            }
-
-            .stat-card.teal::before {
-                background: var(--accent);
-            }
-
-            .stat-card.red::before {
-                background: var(--danger);
-            }
-
-            .stat-card .stat-num {
-                font-family: var(--font-display);
-                font-size: 2rem;
-                font-weight: 700;
-                line-height: 1;
-                margin-bottom: 4px;
-            }
-
-            .stat-card .stat-lbl {
-                font-size: 13px;
-                color: var(--text-mid);
-                font-weight: 500;
-            }
-
-        /* ── TABLES ── */
-        .table {
-            font-size: 14px;
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
         }
 
-            .table thead th {
-                font-family: var(--font-display);
-                font-size: 12px;
-                font-weight: 600;
-                letter-spacing: 0.05em;
-                text-transform: uppercase;
-                color: var(--text-mid);
-                border-bottom: 2px solid var(--border) !important;
-                padding: 12px 16px;
-            }
+        .stat-card.blue::before { background: var(--primary); }
+        .stat-card.green::before { background: var(--success); }
+        .stat-card.amber::before { background: var(--warning); }
+        .stat-card.teal::before { background: var(--accent); }
+        .stat-card.red::before { background: var(--danger); }
 
-            .table td {
-                padding: 12px 16px;
-                vertical-align: middle;
-                border-color: var(--border) !important;
-                color: var(--text-dark);
-            }
-
-        .table-hover tbody tr:hover {
-            background: var(--primary-light) !important;
+        .stat-card .stat-num {
+            font-family: var(--font-display);
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 4px;
         }
 
-        /* ── BADGES ── */
+        .stat-card .stat-lbl {
+            font-size: 13px;
+            color: var(--text-mid);
+            font-weight: 500;
+        }
+
+        .table { font-size: 14px; }
+
+        .table thead th {
+            font-family: var(--font-display);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            color: var(--text-mid);
+            border-bottom: 2px solid var(--border) !important;
+            padding: 12px 16px;
+        }
+
+        .table td {
+            padding: 12px 16px;
+            vertical-align: middle;
+            border-color: var(--border) !important;
+            color: var(--text-dark);
+        }
+
+        .table-hover tbody tr:hover { background: var(--primary-light) !important; }
+
         .badge {
             font-family: var(--font-display);
             font-size: 11px;
@@ -356,7 +321,6 @@
             border-radius: 99px;
         }
 
-        /* ── FORMS ── */
         .form-control, .form-select {
             border: 1.5px solid var(--border);
             border-radius: var(--radius-sm) !important;
@@ -367,10 +331,10 @@
             background: var(--white);
         }
 
-            .form-control:focus, .form-select:focus {
-                border-color: var(--primary) !important;
-                box-shadow: 0 0 0 3px rgba(26,86,240,0.12) !important;
-            }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary) !important;
+            box-shadow: 0 0 0 3px rgba(26,86,240,0.12) !important;
+        }
 
         .form-label {
             font-size: 13px;
@@ -380,7 +344,6 @@
             font-family: var(--font-display);
         }
 
-        /* ── BUTTONS ── */
         .btn-primary {
             background: var(--primary) !important;
             border-color: var(--primary) !important;
@@ -389,10 +352,10 @@
             border-radius: var(--radius-sm) !important;
         }
 
-            .btn-primary:hover {
-                background: var(--primary-dark) !important;
-                border-color: var(--primary-dark) !important;
-            }
+        .btn-primary:hover {
+            background: var(--primary-dark) !important;
+            border-color: var(--primary-dark) !important;
+        }
 
         .btn-outline-primary {
             color: var(--primary) !important;
@@ -402,63 +365,43 @@
             border-radius: var(--radius-sm) !important;
         }
 
-            .btn-outline-primary:hover {
-                background: var(--primary) !important;
-                color: white !important;
-            }
+        .btn-outline-primary:hover {
+            background: var(--primary) !important;
+            color: white !important;
+        }
 
         .btn-outline-secondary {
             border-radius: var(--radius-sm) !important;
             font-family: var(--font-display);
         }
 
-        /* ── ALERTS ── */
         .alert {
             border: none !important;
             border-radius: var(--radius) !important;
             font-size: 14px;
         }
 
-        .alert-danger {
-            background: #fef2f2 !important;
-            color: #991b1b !important;
+        .alert-danger { background: #fef2f2 !important; color: #991b1b !important; }
+        .alert-success { background: #ecfdf5 !important; color: #065f46 !important; }
+        .alert-warning { background: #fffbeb !important; color: #92400e !important; }
+        .alert-info { background: #eff6ff !important; color: #1e40af !important; }
+
+        .page-header { margin-bottom: 1.75rem; }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin-bottom: 4px;
+            letter-spacing: -0.02em;
         }
 
-        .alert-success {
-            background: #ecfdf5 !important;
-            color: #065f46 !important;
+        .page-header p {
+            color: var(--text-mid);
+            font-size: 14px;
+            margin: 0;
         }
 
-        .alert-warning {
-            background: #fffbeb !important;
-            color: #92400e !important;
-        }
-
-        .alert-info {
-            background: #eff6ff !important;
-            color: #1e40af !important;
-        }
-
-        /* ── PAGE HEADER ── */
-        .page-header {
-            margin-bottom: 1.75rem;
-        }
-
-            .page-header h1 {
-                font-size: 1.5rem;
-                font-weight: 700;
-                color: var(--text-dark);
-                margin-bottom: 4px;
-                letter-spacing: -0.02em;
-            }
-
-            .page-header p {
-                color: var(--text-mid);
-                font-size: 14px;
-                margin: 0;
-            }
-
-        /* ── FOOTER ── */
         .report-footer {
             background: var(--white);
             border-top: 1px solid var(--border);
@@ -469,10 +412,8 @@
     </style>
 </head>
 <body>
-
     @if (Context.Session.GetString("JwtToken") != null)
     {
-        <!-- SIDEBAR -->
         <div class="report-sidebar">
             <a class="sidebar-brand" asp-controller="Dashboard" asp-action="Index">
                 <div class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></div>
@@ -504,6 +445,12 @@
                 <a asp-controller="Dashboard" asp-action="Specializations">
                     <i class="bi bi-heart-pulse"></i> Specializations
                 </a>
+                <a asp-controller="Dashboard" asp-action="TodayAppointments">
+                    <i class="bi bi-calendar-day"></i> Today's Appointments
+                </a>
+                <a asp-controller="Dashboard" asp-action="UpcomingAppointments">
+                    <i class="bi bi-calendar-week"></i> Upcoming Appointments
+                </a>
             </nav>
 
             <div class="sidebar-footer">
@@ -513,9 +460,7 @@
             </div>
         </div>
 
-        <!-- MAIN -->
         <div class="report-main">
-            <!-- TOP BAR -->
             <div class="report-topbar">
                 <h1 class="page-title">@ViewData["Title"]</h1>
                 <div class="user-info">
@@ -527,12 +472,10 @@
                 </div>
             </div>
 
-            <!-- PAGE CONTENT -->
             <div class="report-body">
                 @RenderBody()
             </div>
 
-            <!-- FOOTER -->
             <footer class="report-footer">
                 &copy; 2026 Spirit Clinic — Reporting Portal
             </footer>
