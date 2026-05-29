@@ -3,69 +3,93 @@
     ViewData["Title"] = "Dashboard";
 }
 
-<div class="row g-4">
+<div class="page-header">
+    <h1>Clinic Overview</h1>
+    <p>@DateTime.Today.ToString("dddd, dd MMMM yyyy") — Summary of current clinic activity</p>
+</div>
+
+<!-- Stat Cards Row 1 -->
+<div class="row g-3 mb-3">
     <div class="col-md-3">
-        <div class="card stat-card p-3" style="border-left-color:#0d6efd;">
-            <div class="text-muted small">Total Patients</div>
-            <div class="fs-2 fw-bold text-primary">@Model?.TotalPatients</div>
+        <div class="stat-card blue">
+            <div class="stat-num text-primary">@Model?.TotalPatients</div>
+            <div class="stat-lbl">Total Patients</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card stat-card p-3" style="border-left-color:#198754;">
-            <div class="text-muted small">Active Doctors</div>
-            <div class="fs-2 fw-bold text-success">@Model?.ActiveDoctors / @Model?.TotalDoctors</div>
+        <div class="stat-card green">
+            <div class="stat-num" style="color:var(--success)">@Model?.ActiveDoctors <span style="font-size:1rem;font-weight:500;color:var(--text-mid);">/ @Model?.TotalDoctors</span></div>
+            <div class="stat-lbl">Active Doctors</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card stat-card p-3" style="border-left-color:#ffc107;">
-            <div class="text-muted small">Today's Appointments</div>
-            <div class="fs-2 fw-bold text-warning">@Model?.TodayAppointments</div>
+        <div class="stat-card teal">
+            <div class="stat-num" style="color:var(--accent)">@Model?.TodayAppointments</div>
+            <div class="stat-lbl">Today's Appointments</div>
         </div>
     </div>
     <div class="col-md-3">
-        <div class="card stat-card p-3" style="border-left-color:#dc3545;">
-            <div class="text-muted small">Cancelled</div>
-            <div class="fs-2 fw-bold text-danger">@Model?.CancelledAppointments</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card p-3" style="border-left-color:#6f42c1;">
-            <div class="text-muted small">Total Appointments</div>
-            <div class="fs-2 fw-bold" style="color:#6f42c1;">@Model?.TotalAppointments</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card p-3" style="border-left-color:#0dcaf0;">
-            <div class="text-muted small">Upcoming Appointments</div>
-            <div class="fs-2 fw-bold text-info">@Model?.UpcomingAppointments</div>
-        </div>
-    </div>
-    <div class="col-md-3">
-        <div class="card stat-card p-3" style="border-left-color:#fd7e14;">
-            <div class="text-muted small">Missed Appointments</div>
-            <div class="fs-2 fw-bold" style="color:#fd7e14;">@Model?.MissedAppointments</div>
+        <div class="stat-card amber">
+            <div class="stat-num" style="color:var(--warning)">@Model?.UpcomingAppointments</div>
+            <div class="stat-lbl">Upcoming Appointments</div>
         </div>
     </div>
 </div>
 
-<div class="row mt-4">
-    <div class="col-12">
-        <div class="card p-4">
-            <h5 class="mb-3">Quick Navigation</h5>
-            <div class="d-flex gap-3 flex-wrap">
-                <a asp-action="AppointmentStats" class="btn btn-outline-primary">
-                    <i class="bi bi-calendar-check me-1"></i> Appointment Stats
-                </a>
-                <a asp-action="CancellationRate" class="btn btn-outline-danger">
-                    <i class="bi bi-x-circle me-1"></i> Cancellation Rate
-                </a>
-                <a asp-action="DoctorUtilization" class="btn btn-outline-success">
-                    <i class="bi bi-person-badge me-1"></i> Doctor Utilization
-                </a>
-                <a asp-action="Specializations" class="btn btn-outline-info">
-                    <i class="bi bi-heart-pulse me-1"></i> Specializations
-                </a>
-            </div>
+<!-- Stat Cards Row 2 -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stat-card red">
+            <div class="stat-num" style="color:var(--danger)">@Model?.CancelledAppointments</div>
+            <div class="stat-lbl">Cancelled Appointments</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border:1px solid var(--border);">
+            <div class="stat-num" style="color:#8b5cf6;">@Model?.MissedAppointments</div>
+            <div class="stat-lbl">Missed Appointments</div>
+            <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:#8b5cf6;border-radius:4px 0 0 4px;"></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card" style="border:1px solid var(--border);">
+            <div class="stat-num" style="color:var(--text-dark);">@Model?.TotalAppointments</div>
+            <div class="stat-lbl">Total Appointments</div>
+            <div style="position:absolute;top:0;left:0;width:4px;height:100%;background:var(--text-light);border-radius:4px 0 0 4px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Navigation -->
+<div class="card">
+    <div class="card-header">
+        <i class="bi bi-grid me-2"></i>Reports
+    </div>
+    <div class="card-body">
+        <div class="row g-3">
+            @foreach (var item in new[] {
+                        new { Icon = "bi-calendar-check", Label = "Appointment Stats",   Action = "AppointmentStats", Color = "var(--primary)" },
+                        new { Icon = "bi-x-circle",        Label = "Cancellation Rate",  Action = "CancellationRate", Color = "var(--danger)"  },
+                        new { Icon = "bi-calendar-x",      Label = "Missed Appointments",Action = "MissedAppointments", Color = "#8b5cf6"      },
+                        new { Icon = "bi-person-badge",    Label = "Doctor Utilization", Action = "DoctorUtilization",Color = "var(--success)" },
+                        new { Icon = "bi-heart-pulse",     Label = "Specializations",    Action = "Specializations",  Color = "var(--accent)"  },
+                        })
+            {
+                <div class="col-md-4 col-lg-2-4" style="flex:0 0 20%;max-width:20%;">
+                    <a asp-action="@item.Action" style="text-decoration:none;">
+                        <div class="card text-center h-100" style="padding:1.25rem .5rem;transition:all .15s;"
+                             onmouseover="this.style.boxShadow='var(--shadow)';this.style.transform='translateY(-2px)'"
+                             onmouseout="this.style.boxShadow='';this.style.transform=''">
+                            <div style="font-size:2rem;color:@item.Color;margin-bottom:8px;">
+                                <i class="bi @item.Icon"></i>
+                            </div>
+                            <div style="font-family:var(--font-display);font-weight:600;font-size:13px;color:var(--text-dark);">
+                                @item.Label
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            }
         </div>
     </div>
 </div>

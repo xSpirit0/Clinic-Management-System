@@ -56,7 +56,14 @@ namespace ClinicAPI.Services
                     new NotificationType { Type = "AppointmentReminder" },
                     new NotificationType { Type = "AppointmentCompleted" },
                     new NotificationType { Type = "PrescriptionIssued" },
-                    new NotificationType { Type = "General" }
+                    new NotificationType { Type = "General" },
+                    new NotificationType { Type = "PatientCheckedIn" },
+                    new NotificationType { Type = "AppointmentMissed" },
+                    new NotificationType { Type = "AccountStatusChanged" },
+                    new NotificationType { Type = "LeaveRequested" },
+                    new NotificationType { Type = "VisitCompleted" },
+                    new NotificationType { Type = "LeaveApproved" },
+                    new NotificationType { Type = "LeaveRejected" }
                 );
                 await context.SaveChangesAsync();
             }
@@ -150,8 +157,7 @@ namespace ClinicAPI.Services
                             DayOfWeek = day,
                             StartTime = new TimeOnly(8, 0),
                             EndTime = new TimeOnly(16, 0),
-                            SlotDurationMinutes = 30,
-                            IsActive = true
+                            SlotDurationMinutes = 30
                         },
                         new DoctorSchedule
                         {
@@ -159,8 +165,7 @@ namespace ClinicAPI.Services
                             DayOfWeek = day,
                             StartTime = new TimeOnly(9, 0),
                             EndTime = new TimeOnly(17, 0),
-                            SlotDurationMinutes = 30,
-                            IsActive = true
+                            SlotDurationMinutes = 30
                         }
                     );
                 }
@@ -171,25 +176,19 @@ namespace ClinicAPI.Services
                 context.PatientProfiles.AddRange(
                     new PatientProfile
                     {
-                        Cprnumber = "880412345",
-                        PatientReferenceNumber = "PAT-2024-001",
-                        DateOfBirth = new DateOnly(1988, 4, 12),
+                        AspNetUserId = patientUser1.Id,
+                        Cprnumber = "900101001",
+                        DateOfBirth = new DateOnly(1990, 1, 1),
                         Gender = "Male",
-                        BloodType = "O+",
-                        EmergencyContactName = "Maryam Al-Dosari",
-                        EmergencyContactPhone = "+973 3312 4455",
-                        AspNetUserId = patientUser1.Id
+                        PatientReferenceNumber = "PAT-00001"
                     },
                     new PatientProfile
                     {
-                        Cprnumber = "950823456",
-                        PatientReferenceNumber = "PAT-2024-002",
-                        DateOfBirth = new DateOnly(1995, 8, 23),
+                        AspNetUserId = patientUser2.Id,
+                        Cprnumber = "950202002",
+                        DateOfBirth = new DateOnly(1995, 2, 2),
                         Gender = "Female",
-                        BloodType = "A-",
-                        EmergencyContactName = "Ali Al-Sayed",
-                        EmergencyContactPhone = "+973 3398 7766",
-                        AspNetUserId = patientUser2.Id
+                        PatientReferenceNumber = "PAT-00002"
                     }
                 );
                 await context.SaveChangesAsync();
@@ -198,90 +197,109 @@ namespace ClinicAPI.Services
             var patient2 = await context.PatientProfiles.FirstAsync(p => p.AspNetUserId == patientUser2.Id);
             if (!context.Appointments.Any())
             {
-                var statuses = await context.AppointmentStatuses.ToListAsync();
+                var confirmedStatus = await context.AppointmentStatuses
+                    .FirstAsync(s => s.AppointmentStatus1 == "Confirmed");
+                var completedStatus = await context.AppointmentStatuses
+                    .FirstAsync(s => s.AppointmentStatus1 == "Completed");
+                var cancelledStatus = await context.AppointmentStatuses
+                    .FirstAsync(s => s.AppointmentStatus1 == "Cancelled");
+                var missedStatus = await context.AppointmentStatuses
+                    .FirstAsync(s => s.AppointmentStatus1 == "Missed");
+                var requestedStatus = await context.AppointmentStatuses
+                    .FirstAsync(s => s.AppointmentStatus1 == "Requested");
                 var genMed = await context.Specializations.FirstAsync(s => s.Name == "General Medicine");
                 var cardio = await context.Specializations.FirstAsync(s => s.Name == "Cardiology");
                 var today = DateOnly.FromDateTime(DateTime.Today);
-                AppointmentStatus Status(string name) =>
-                    statuses.First(s => s.AppointmentStatus1 == name);
-                var appointments = new List<Appointment>
-                {
-                    new Appointment {
-                        PatientId = patient1.PatientId, DoctorId = doctor1.DoctorId,
+                context.Appointments.AddRange(
+                    new Appointment
+                    {
+                        PatientId = patient1.PatientId,
+                        DoctorId = doctor1.DoctorId,
                         SpecializationId = genMed.SpecializationId,
-                        ScheduledDate = today, SlotStartTime = new TimeOnly(9,0), SlotEndTime = new TimeOnly(9,30),
-                        AppointmentStatusId = Status("Confirmed").AppointmentStatusId,
-                        ComplaintReason = "Persistent headache for 3 days", CreatedAt = DateTime.Now
+                        ScheduledDate = today.AddDays(-30),
+                        SlotStartTime = new TimeOnly(9, 0),
+                        SlotEndTime = new TimeOnly(9, 30),
+                        AppointmentStatusId = completedStatus.AppointmentStatusId,
+                        ComplaintReason = "Sore throat and mild fever",
+                        CreatedAt = DateTime.Now.AddDays(-31),
+                        UpdatedAt = DateTime.Now.AddDays(-30)
                     },
-                    new Appointment {
-                        PatientId = patient2.PatientId, DoctorId = doctor1.DoctorId,
+                    new Appointment
+                    {
+                        PatientId = patient2.PatientId,
+                        DoctorId = doctor1.DoctorId,
                         SpecializationId = genMed.SpecializationId,
-                        ScheduledDate = today, SlotStartTime = new TimeOnly(10,0), SlotEndTime = new TimeOnly(10,30),
-                        AppointmentStatusId = Status("CheckedIn").AppointmentStatusId,
-                        ComplaintReason = "Annual checkup", CreatedAt = DateTime.Now
+                        ScheduledDate = today.AddDays(-15),
+                        SlotStartTime = new TimeOnly(10, 0),
+                        SlotEndTime = new TimeOnly(10, 30),
+                        AppointmentStatusId = completedStatus.AppointmentStatusId,
+                        ComplaintReason = "Lower back pain",
+                        CreatedAt = DateTime.Now.AddDays(-16),
+                        UpdatedAt = DateTime.Now.AddDays(-15)
                     },
-                    new Appointment {
-                        PatientId = patient1.PatientId, DoctorId = doctor2.DoctorId,
+                    new Appointment
+                    {
+                        PatientId = patient1.PatientId,
+                        DoctorId = doctor2.DoctorId,
                         SpecializationId = cardio.SpecializationId,
-                        ScheduledDate = today, SlotStartTime = new TimeOnly(11,0), SlotEndTime = new TimeOnly(11,30),
-                        AppointmentStatusId = Status("Requested").AppointmentStatusId,
-                        ComplaintReason = "Chest pain when exercising", CreatedAt = DateTime.Now
+                        ScheduledDate = today.AddDays(3),
+                        SlotStartTime = new TimeOnly(11, 0),
+                        SlotEndTime = new TimeOnly(11, 30),
+                        AppointmentStatusId = confirmedStatus.AppointmentStatusId,
+                        ComplaintReason = "Routine cardiac checkup",
+                        CreatedAt = DateTime.Now.AddDays(-2),
+                        UpdatedAt = DateTime.Now.AddDays(-2)
                     },
-                    new Appointment {
-                        PatientId = patient2.PatientId, DoctorId = doctor2.DoctorId,
+                    new Appointment
+                    {
+                        PatientId = patient2.PatientId,
+                        DoctorId = doctor2.DoctorId,
                         SpecializationId = cardio.SpecializationId,
-                        ScheduledDate = today.AddDays(2), SlotStartTime = new TimeOnly(9,0), SlotEndTime = new TimeOnly(9,30),
-                        AppointmentStatusId = Status("Confirmed").AppointmentStatusId,
-                        ComplaintReason = "Follow-up after ECG", CreatedAt = DateTime.Now
+                        ScheduledDate = today.AddDays(-5),
+                        SlotStartTime = new TimeOnly(14, 0),
+                        SlotEndTime = new TimeOnly(14, 30),
+                        AppointmentStatusId = cancelledStatus.AppointmentStatusId,
+                        ComplaintReason = "Palpitations",
+                        CreatedAt = DateTime.Now.AddDays(-7),
+                        UpdatedAt = DateTime.Now.AddDays(-5)
                     },
-                    new Appointment {
-                        PatientId = patient1.PatientId, DoctorId = doctor1.DoctorId,
+                    new Appointment
+                    {
+                        PatientId = patient1.PatientId,
+                        DoctorId = doctor1.DoctorId,
                         SpecializationId = genMed.SpecializationId,
-                        ScheduledDate = today.AddDays(4), SlotStartTime = new TimeOnly(14,0), SlotEndTime = new TimeOnly(14,30),
-                        AppointmentStatusId = Status("Requested").AppointmentStatusId,
-                        ComplaintReason = "Skin rash on arm", CreatedAt = DateTime.Now
+                        ScheduledDate = today,
+                        SlotStartTime = new TimeOnly(9, 0),
+                        SlotEndTime = new TimeOnly(9, 30),
+                        AppointmentStatusId = confirmedStatus.AppointmentStatusId,
+                        ComplaintReason = "Follow-up visit",
+                        CreatedAt = DateTime.Now.AddDays(-1),
+                        UpdatedAt = DateTime.Now.AddDays(-1)
                     },
-                    new Appointment {
-                        PatientId = patient1.PatientId, DoctorId = doctor1.DoctorId,
+                    new Appointment
+                    {
+                        PatientId = patient2.PatientId,
+                        DoctorId = doctor1.DoctorId,
                         SpecializationId = genMed.SpecializationId,
-                        ScheduledDate = today.AddDays(-7), SlotStartTime = new TimeOnly(9,0), SlotEndTime = new TimeOnly(9,30),
-                        AppointmentStatusId = Status("Completed").AppointmentStatusId,
-                        ComplaintReason = "Fever and sore throat", CreatedAt = DateTime.Now.AddDays(-7)
-                    },
-                    new Appointment {
-                        PatientId = patient2.PatientId, DoctorId = doctor1.DoctorId,
-                        SpecializationId = genMed.SpecializationId,
-                        ScheduledDate = today.AddDays(-14), SlotStartTime = new TimeOnly(10,0), SlotEndTime = new TimeOnly(10,30),
-                        AppointmentStatusId = Status("Completed").AppointmentStatusId,
-                        ComplaintReason = "Lower back pain", CreatedAt = DateTime.Now.AddDays(-14)
-                    },
-                    new Appointment {
-                        PatientId = patient2.PatientId, DoctorId = doctor2.DoctorId,
-                        SpecializationId = cardio.SpecializationId,
-                        ScheduledDate = today.AddDays(-3), SlotStartTime = new TimeOnly(11,0), SlotEndTime = new TimeOnly(11,30),
-                        AppointmentStatusId = Status("Cancelled").AppointmentStatusId,
-                        ComplaintReason = "Heart palpitations", CreatedAt = DateTime.Now.AddDays(-3)
-                    },
-                    new Appointment {
-                        PatientId = patient1.PatientId, DoctorId = doctor2.DoctorId,
-                        SpecializationId = cardio.SpecializationId,
-                        ScheduledDate = today.AddDays(-5), SlotStartTime = new TimeOnly(9,0), SlotEndTime = new TimeOnly(9,30),
-                        AppointmentStatusId = Status("Missed").AppointmentStatusId,
-                        ComplaintReason = "Routine cardiac check", CreatedAt = DateTime.Now.AddDays(-5)
+                        ScheduledDate = today.AddDays(-20),
+                        SlotStartTime = new TimeOnly(13, 0),
+                        SlotEndTime = new TimeOnly(13, 30),
+                        AppointmentStatusId = missedStatus.AppointmentStatusId,
+                        ComplaintReason = "Skin rash",
+                        CreatedAt = DateTime.Now.AddDays(-21),
+                        UpdatedAt = DateTime.Now.AddDays(-20)
                     }
-                };
-                context.Appointments.AddRange(appointments);
+                );
                 await context.SaveChangesAsync();
             }
             if (!context.VisitRecords.Any())
             {
-                var today = DateOnly.FromDateTime(DateTime.Today);
+                var activeStatus = await context.PrescriptionStatuses
+                    .FirstAsync(s => s.PrescriptionStatus1 == "Active");
                 var completed = await context.Appointments
                     .Include(a => a.AppointmentStatus)
                     .Where(a => a.AppointmentStatus.AppointmentStatus1 == "Completed")
                     .ToListAsync();
-                var activeStatus = await context.PrescriptionStatuses
-                    .FirstAsync(s => s.PrescriptionStatus1 == "Active");
                 foreach (var appt in completed)
                 {
                     var visit = new VisitRecord

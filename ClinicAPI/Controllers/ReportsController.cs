@@ -293,46 +293,7 @@ namespace ClinicAPI.Controllers
             });
         }
 
-        [HttpGet("doctors/workload-by-status")]
-        public async Task<IActionResult> GetDoctorWorkloadByStatus(DateOnly? from, DateOnly? to)
-        {
-            var validation = ValidateDateRange(from, to);
-            if (validation != null) return validation;
-
-            var query = _context.Appointments
-                .Include(a => a.Doctor).ThenInclude(d => d.AspNetUser)
-                .Include(a => a.AppointmentStatus)
-                .AsQueryable();
-
-            query = ApplyDateFilter(query, from, to);
-
-            var result = await query
-                .GroupBy(a => new
-                {
-                    a.DoctorId,
-                    DoctorName = a.Doctor.AspNetUser != null
-                        ? a.Doctor.AspNetUser.FirstName + " " + a.Doctor.AspNetUser.LastName
-                        : "Unknown Doctor",
-                    Status = a.AppointmentStatus.AppointmentStatus1
-                })
-                .Select(g => new
-                {
-                    doctorId = g.Key.DoctorId,
-                    doctorName = g.Key.DoctorName,
-                    status = g.Key.Status,
-                    count = g.Count()
-                })
-                .OrderBy(x => x.doctorName)
-                .ThenBy(x => x.status)
-                .ToListAsync();
-
-            return Ok(new
-            {
-                from,
-                to,
-                workload = result
-            });
-        }
+       
 
         [HttpGet("specializations/appointments")]
         public async Task<IActionResult> GetAppointmentsBySpecialization(DateOnly? from, DateOnly? to)

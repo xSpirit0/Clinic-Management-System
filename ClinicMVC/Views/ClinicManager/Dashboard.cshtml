@@ -58,15 +58,16 @@
 
 <!-- Quick Actions -->
 <div class="row g-3 mb-4">
-    @foreach (var (icon, label, url, color) in new (string,string,string,string)[] {
-        ("bi-people",          "Manage Doctors",       Url.Action("Doctors")!,          "var(--primary)"),
-        ("bi-calendar3",       "All Appointments",     Url.Action("AllAppointments")!,  "var(--accent)"),
-        ("bi-calendar-minus",  "Leave Requests",       Url.Action("LeaveRequests")!,    "var(--warning)"),
-        ("bi-award",           "Specializations",      Url.Action("Specializations")!,  "var(--success)"),
-        ("bi-person-lines-fill","Patients",            Url.Action("Patients")!,         "#8b5cf6"),
-    })
+    @foreach (var (icon, label, url, color) in new (string, string, string, string)[] {
+        ("bi-people",           "Manage Doctors",    Url.Action("Doctors")!,          "var(--primary)"),
+        ("bi-calendar3",        "All Appointments",  Url.Action("AllAppointments")!,  "var(--accent)"),
+        ("bi-calendar-minus",   "Leave Requests",    Url.Action("LeaveRequests")!,    "var(--warning)"),
+        ("bi-award",            "Specializations",   Url.Action("Specializations")!,  "var(--success)"),
+        ("bi-person-lines-fill","Patients",          Url.Action("Patients")!,         "#8b5cf6"),
+        ("bi-person-badge",     "Staff",             Url.Action("StaffManagement")!,  "#0891b2"),
+        })
     {
-        <div class="col-md-2-4" style="flex:0 0 20%;max-width:20%;">
+        <div style="flex:0 0 16.66%;max-width:16.66%;padding:0 6px;">
             <a href="@url" style="text-decoration:none;">
                 <div class="card text-center h-100" style="transition:all .2s;padding:1.25rem .5rem;">
                     <div style="font-size:2rem;color:@color;margin-bottom:8px;">
@@ -114,15 +115,16 @@
                         @foreach (var a in recentAppointments)
                         {
                             var s = a.AppointmentStatus?.AppointmentStatus1 ?? "";
-                            var bc = s switch {
-                                "Requested"  => "bg-secondary",
-                                "Confirmed"  => "bg-primary",
-                                "CheckedIn"  => "bg-info",
+                            var bc = s switch
+                            {
+                                "Requested" => "bg-secondary",
+                                "Confirmed" => "bg-primary",
+                                "CheckedIn" => "bg-info",
                                 "InProgress" => "bg-warning text-dark",
-                                "Completed"  => "bg-success",
-                                "Cancelled"  => "bg-danger",
-                                "Missed"     => "bg-dark",
-                                _            => "bg-secondary"
+                                "Completed" => "bg-success",
+                                "Cancelled" => "bg-danger",
+                                "Missed" => "bg-dark",
+                                _ => "bg-secondary"
                             };
                             <tr>
                                 <td style="font-family:var(--font-display);font-weight:600;">

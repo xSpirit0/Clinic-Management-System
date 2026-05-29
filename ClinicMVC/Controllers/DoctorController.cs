@@ -225,7 +225,7 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
             await NotifyWaitingRoomAsync();
-            await SendStatusChangeNotificationToPatientAsync(appointment, newStatus);
+            await SendStatusChangeNotificationsAsync(appointment, newStatus);
 
             TempData["Success"] = $"Appointment status updated to '{newStatus}'.";
             return RedirectToAction("AppointmentDetails", new { id });
@@ -690,43 +690,70 @@ namespace ClinicMVC.Controllers
             return View(notifications);
         }
 
-        private async Task SendStatusChangeNotificationToPatientAsync(
-            Appointment appointment, string newStatus)
+        private async Task SendStatusChangeNotificationsAsync(
+     Appointment appointment, string newStatus)
         {
+            // --- Patient notification ---
             var patientAspNetUserId = appointment.Patient?.AspNetUserId;
-            if (string.IsNullOrEmpty(patientAspNetUserId)) return;
-
-            (string typeName, string title, string message)? payload = newStatus switch
+            if (!string.IsNullOrEmpty(patientAspNetUserId))
             {
-                "Confirmed" => (
-                    "AppointmentConfirmed",
-                    "Appointment Confirmed",
-                    $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
-                        $"{appointment.SlotStartTime:hh\\:mm} has been confirmed."),
+                (string typeName, string title, string message)? patientPayload = newStatus switch
+                {
+                    "Confirmed" => (
+                        "AppointmentConfirmed",
+                        "Appointment Confirmed",
+                        $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                            $"{appointment.SlotStartTime:HH\\:mm} has been confirmed."),
 
-                "Cancelled" => (
-                    "AppointmentCancelled",
-                    "Appointment Cancelled",
-                    $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
-                        $"{appointment.SlotStartTime:hh\\:mm} was cancelled by the clinic."),
+                    "Completed" => (
+                        "AppointmentCompleted",
+                        "Appointment Completed",
+                        $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} has been completed. " +
+                            $"Check your prescriptions for any medications issued."),
 
-                "Missed" => (
-                    "AppointmentMissed",
-                    "Appointment Marked Missed",
-                    $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
-                        $"{appointment.SlotStartTime:hh\\:mm} was marked as missed."),
+                    "Missed" => (
+                        "AppointmentMissed",
+                        "Appointment Marked Missed",
+                        $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                            $"{appointment.SlotStartTime:HH\\:mm} was marked as missed."),
 
-                _ => null
-            };
+                    _ => null
+                };
 
-            if (payload == null) return;
+                if (patientPayload != null)
+                    await _notificationService.SendAsync(
+                        aspNetUserId: patientAspNetUserId,
+                        notificationTypeName: patientPayload.Value.typeName,
+                        title: patientPayload.Value.title,
+                        message: patientPayload.Value.message,
+                        appointmentId: appointment.AppointmentId);
+            }
 
-            await _notificationService.SendAsync(
-                aspNetUserId: patientAspNetUserId,
-                notificationTypeName: payload.Value.typeName,
-                title: payload.Value.title,
-                message: payload.Value.message,
-                appointmentId: appointment.AppointmentId);
+            
+            var doctorProfile = await _context.DoctorProfiles
+                .FirstOrDefaultAsync(d => d.DoctorId == appointment.DoctorId);
+
+            if (doctorProfile != null)
+            {
+                (string typeName, string title, string message)? doctorPayload = newStatus switch
+                {
+                    "InProgress" => (
+                        "AppointmentConfirmed",
+                        "Consultation Started",
+                        $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                            $"{appointment.SlotStartTime:HH\\:mm} is now in progress."),
+
+                    _ => null
+                };
+
+                if (doctorPayload != null)
+                    await _notificationService.SendAsync(
+                        aspNetUserId: doctorProfile.AspNetUserId,
+                        notificationTypeName: doctorPayload.Value.typeName,
+                        title: doctorPayload.Value.title,
+                        message: doctorPayload.Value.message,
+                        appointmentId: appointment.AppointmentId);
+            }
         }
 
         private async Task NotifyWaitingRoomAsync()

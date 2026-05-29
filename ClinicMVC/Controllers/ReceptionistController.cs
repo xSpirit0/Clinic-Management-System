@@ -200,7 +200,7 @@ namespace ClinicMVC.Controllers
             });
 
             await _context.SaveChangesAsync();
-            await SendStatusChangeNotificationToPatientAsync(appointment, newStatus);
+            await SendStatusChangeNotificationsAsync(appointment, newStatus);
             await NotifyWaitingRoomAsync();
 
             TempData["Success"] = $"Appointment status updated to '{newStatus}'.";
@@ -547,51 +547,121 @@ namespace ClinicMVC.Controllers
             return await _userManager.GetUserAsync(User);
         }
 
-        private async Task SendStatusChangeNotificationToPatientAsync(
+        private async Task SendStatusChangeNotificationsAsync(
             Appointment appointment, string newStatus)
         {
+            // --- Patient notification ---
             var patientAspNetUserId = appointment.Patient?.AspNetUserId;
-            if (string.IsNullOrEmpty(patientAspNetUserId)) return;
-
-            (string typeName, string title, string message)? payload = newStatus switch
+            if (!string.IsNullOrEmpty(patientAspNetUserId))
             {
-                "Confirmed" => (
-                    "AppointmentConfirmed",
-                    "Appointment Confirmed",
-                    $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
-                        $"{appointment.SlotStartTime:HH\\:mm} has been confirmed."),
+                (string typeName, string title, string message)? patientPayload = newStatus switch
+                {
+                    "Confirmed" => (
+                        "AppointmentConfirmed",
+                        "Appointment Confirmed",
+                        $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                            $"{appointment.SlotStartTime:HH\\:mm} has been confirmed."),
 
-                "CheckedIn" => (
-                    "PatientCheckedIn",
-                    "You've Been Checked In",
-                    $"You've been checked in for your appointment at " +
-                        $"{appointment.SlotStartTime:HH\\:mm}. Please take a seat."),
+                    "CheckedIn" => (
+                        "PatientCheckedIn",
+                        "You've Been Checked In",
+                        $"You've been checked in for your appointment at " +
+                            $"{appointment.SlotStartTime:HH\\:mm}. Please take a seat."),
 
-                "Cancelled" => (
-                    "AppointmentCancelled",
-                    "Appointment Cancelled",
-                    $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
-                        $"{appointment.SlotStartTime:HH\\:mm} was cancelled by the clinic."),
+                    "Cancelled" => (
+                        "AppointmentCancelled",
+                        "Appointment Cancelled",
+                        $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                            $"{appointment.SlotStartTime:HH\\:mm} was cancelled by the clinic."),
 
-                "Missed" => (
-                    "AppointmentMissed",
-                    "Appointment Marked Missed",
-                    $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
-                        $"{appointment.SlotStartTime:HH\\:mm} was marked as missed."),
+                    "Missed" => (
+                        "AppointmentMissed",
+                        "Appointment Marked Missed",
+                        $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                            $"{appointment.SlotStartTime:HH\\:mm} was marked as missed."),
 
-                _ => null
-            };
+                    _ => null
+                };
 
-            if (payload == null) return;
+                if (patientPayload != null)
+                    await _notificationService.SendAsync(
+                        aspNetUserId: patientAspNetUserId,
+                        notificationTypeName: patientPayload.Value.typeName,
+                        title: patientPayload.Value.title,
+                        message: patientPayload.Value.message,
+                        appointmentId: appointment.AppointmentId);
+            }
 
-            await _notificationService.SendAsync(
-                aspNetUserId: patientAspNetUserId,
-                notificationTypeName: payload.Value.typeName,
-                title: payload.Value.title,
-                message: payload.Value.message,
-                appointmentId: appointment.AppointmentId);
+            // --- Doctor notification ---
+            var doctorProfile = await _context.DoctorProfiles
+                .FirstOrDefaultAsync(d => d.DoctorId == appointment.DoctorId);
+
+            if (doctorProfile != null)
+            {
+                (string typeName, string title, string message)? doctorPayload = newStatus switch
+                {
+                    "Cancelled" => (
+                        "AppointmentCancelled",
+                        "Appointment Cancelled",
+                        $"An appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                            $"{appointment.SlotStartTime:HH\\:mm} has been cancelled."),
+
+                    "Missed" => (
+                        "AppointmentMissed",
+                        "Appointment Marked Missed",
+                        $"An appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                            $"{appointment.SlotStartTime:HH\\:mm} was marked as missed."),
+
+                    _ => null
+                };
+
+                if (doctorPayload != null)
+                    await _notificationService.SendAsync(
+                        aspNetUserId: doctorProfile.AspNetUserId,
+                        notificationTypeName: doctorPayload.Value.typeName,
+                        title: doctorPayload.Value.title,
+                        message: doctorPayload.Value.message,
+                        appointmentId: appointment.AppointmentId);
+            }
         }
 
+        [AllowAnonymous]
+        public async Task<IActionResult> WaitingRoomData()
+        {
+            var today = DateOnly.FromDateTime(DateTime.Today);
+
+            var todayAppointments = await _context.Appointments
+                .Include(a => a.Patient).ThenInclude(p => p.AspNetUser)
+                .Include(a => a.Doctor).ThenInclude(d => d.AspNetUser)
+                .Include(a => a.Specialization)
+                .Include(a => a.AppointmentStatus)
+                .Where(a => a.ScheduledDate == today &&
+                            a.AppointmentStatus.AppointmentStatus1 != "Cancelled" &&
+                            a.AppointmentStatus.AppointmentStatus1 != "Missed")
+                .OrderBy(a => a.SlotStartTime)
+                .Select(a => new
+                {
+                    status = a.AppointmentStatus.AppointmentStatus1,
+                    time = a.SlotStartTime.ToString("HH:mm"),
+                    patientName = (a.Patient.AspNetUser != null
+                        ? a.Patient.AspNetUser.FirstName + " " + a.Patient.AspNetUser.LastName
+                        : "Unknown"),
+                    doctorName = (a.Doctor.AspNetUser != null
+                        ? a.Doctor.AspNetUser.FirstName
+                        : "—"),
+                    specialization = a.Specialization != null ? a.Specialization.Name : ""
+                })
+                .ToListAsync();
+
+            return Json(new
+            {
+                lastUpdated = DateTime.Now.ToString("HH:mm:ss"),
+                confirmed = todayAppointments.Where(a => a.status == "Confirmed"),
+                checkedIn = todayAppointments.Where(a => a.status == "CheckedIn"),
+                inProgress = todayAppointments.Where(a => a.status == "InProgress"),
+                completed = todayAppointments.Where(a => a.status == "Completed")
+            });
+        }
         private async Task NotifyWaitingRoomAsync()
         {
             try

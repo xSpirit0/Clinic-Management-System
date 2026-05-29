@@ -322,6 +322,7 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
 
+            // Notify the doctor their leave was approved
             await _notificationService.SendAsync(
                 aspNetUserId: leave.Doctor?.AspNetUserId,
                 notificationTypeName: "LeaveApproved",
@@ -330,7 +331,61 @@ namespace ClinicMVC.Controllers
                          $"{leave.EndDate:dd MMM yyyy} has been approved." +
                          (string.IsNullOrWhiteSpace(notes) ? "" : $" Note: {notes}"));
 
-            TempData["Success"] = "Leave request approved.";
+            // Find and cancel any active appointments during the leave period
+            var cancelledStatus = await _context.AppointmentStatuses
+                .FirstOrDefaultAsync(s => s.AppointmentStatus1 == "Cancelled");
+
+            if (cancelledStatus != null)
+            {
+                var affectedAppointments = await _context.Appointments
+                    .Include(a => a.AppointmentStatus)
+                    .Include(a => a.Patient)
+                    .Where(a => a.DoctorId == leave.DoctorId &&
+                                a.ScheduledDate >= leave.StartDate &&
+                                a.ScheduledDate <= leave.EndDate &&
+                                (a.AppointmentStatus.AppointmentStatus1 == "Requested" ||
+                                 a.AppointmentStatus.AppointmentStatus1 == "Confirmed"))
+                    .ToListAsync();
+
+                foreach (var appointment in affectedAppointments)
+                {
+                    appointment.AppointmentStatusId = cancelledStatus.AppointmentStatusId;
+                    appointment.UpdatedAt = DateTime.Now;
+
+                    _context.AppointmentStatusHistories.Add(new AppointmentStatusHistory
+                    {
+                        AppointmentId = appointment.AppointmentId,
+                        AppointmentStatusId = cancelledStatus.AppointmentStatusId,
+                        ChangedAt = DateTime.Now,
+                        Notes = "Cancelled due to doctor leave approval.",
+                        ChangedByAspNetUserId = user.Id
+                    });
+
+                    // Notify the patient their appointment was cancelled
+                    if (appointment.Patient?.AspNetUserId != null)
+                    {
+                        await _notificationService.SendAsync(
+                            aspNetUserId: appointment.Patient.AspNetUserId,
+                            notificationTypeName: "AppointmentCancelled",
+                            title: "Appointment Cancelled",
+                            message: $"Your appointment on {appointment.ScheduledDate:dd MMM yyyy} at " +
+                                     $"{appointment.SlotStartTime:HH\\:mm} has been cancelled because " +
+                                     $"your doctor will be on leave. Please rebook at your convenience.");
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                if (affectedAppointments.Count > 0)
+                    TempData["Success"] = $"Leave approved. {affectedAppointments.Count} appointment(s) were automatically cancelled and patients notified.";
+                else
+                    TempData["Success"] = "Leave request approved.";
+            }
+            else
+            {
+                TempData["Success"] = "Leave request approved.";
+            }
+
             return RedirectToAction("LeaveRequests");
         }
 
