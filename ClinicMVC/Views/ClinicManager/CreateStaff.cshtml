@@ -1,0 +1,160 @@
+@{
+    ViewData["Title"] = "Add Staff Member";
+}
+
+<div class="mb-4">
+    <a asp-action="StaffManagement" class="text-decoration-none" style="color:var(--text-mid);font-size:14px;">
+        <i class="bi bi-arrow-left me-1"></i>Back to Staff Management
+    </a>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="card" style="border-radius:var(--radius);border:1px solid var(--border);">
+            <div class="card-header" style="background:var(--white);border-bottom:1px solid var(--border);padding:20px 24px;border-radius:var(--radius) var(--radius) 0 0;">
+                <h5 class="mb-0" style="font-family:var(--font-display);font-weight:600;">
+                    <i class="bi bi-person-plus-fill me-2 text-primary"></i>Add New Staff Member
+                </h5>
+            </div>
+            <div class="card-body p-4">
+
+                @if (TempData["Error"] != null)
+                {
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-circle-fill me-2"></i>@TempData["Error"]
+                    </div>
+                }
+
+                <form asp-action="CreateStaff" method="post">
+                    @Html.AntiForgeryToken()
+
+                    @* Role Selector *@
+                    <div class="mb-4">
+                        <label class="form-label fw-600" style="font-size:14px;">Role <span class="text-danger">*</span></label>
+                        <div class="d-flex gap-3">
+                            <div class="form-check role-card flex-fill" id="card-doctor">
+                                <input class="form-check-input" type="radio" name="role" id="roleDoctor"
+                                       value="Doctor" checked onchange="toggleDoctorFields()" />
+                                <label class="form-check-label d-block p-3" for="roleDoctor"
+                                       style="border:2px solid var(--primary);border-radius:var(--radius-sm);cursor:pointer;background:var(--primary-light);">
+                                    <i class="bi bi-person-badge me-2 text-primary"></i>
+                                    <strong>Doctor</strong>
+                                    <div class="text-muted" style="font-size:12px;margin-top:2px;">Requires license number</div>
+                                </label>
+                            </div>
+                            <div class="form-check role-card flex-fill" id="card-receptionist">
+                                <input class="form-check-input" type="radio" name="role" id="roleReceptionist"
+                                       value="Receptionist" onchange="toggleDoctorFields()" />
+                                <label class="form-check-label d-block p-3" for="roleReceptionist"
+                                       style="border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;">
+                                    <i class="bi bi-headset me-2" style="color:var(--warning);"></i>
+                                    <strong>Receptionist</strong>
+                                    <div class="text-muted" style="font-size:12px;margin-top:2px;">Front desk staff</div>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    @* Name Row *@
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="firstName" class="form-label" style="font-size:14px;font-weight:500;">
+                                First Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="firstName" name="firstName"
+                                   placeholder="e.g. Khalid" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="lastName" class="form-label" style="font-size:14px;font-weight:500;">
+                                Last Name <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="lastName" name="lastName"
+                                   placeholder="e.g. Al-Rashidi" required />
+                        </div>
+                    </div>
+
+                    @* Email *@
+                    <div class="mb-3">
+                        <label for="email" class="form-label" style="font-size:14px;font-weight:500;">
+                            Email <span class="text-danger">*</span>
+                        </label>
+                        <input type="email" class="form-control" id="email" name="email"
+                               placeholder="e.g. dr.khalid@spiritclinic.com" required />
+                        <div class="form-text">This will be used as the login email and cannot be changed later.</div>
+                    </div>
+
+                    @* Phone *@
+                    <div class="mb-3">
+                        <label for="phoneNumber" class="form-label" style="font-size:14px;font-weight:500;">
+                            Phone Number <span class="text-danger">*</span>
+                        </label>
+                        <input type="tel" class="form-control" id="phoneNumber" name="phoneNumber"
+                               placeholder="e.g. +97333123456" required />
+                    </div>
+
+                    @* Password *@
+                    <div class="mb-3">
+                        <label for="password" class="form-label" style="font-size:14px;font-weight:500;">
+                            Temporary Password <span class="text-danger">*</span>
+                        </label>
+                        <input type="password" class="form-control" id="password" name="password"
+                               placeholder="Min 8 characters" required />
+                        <div class="form-text">Staff member should change this after first login.</div>
+                    </div>
+
+                    @* Doctor-only fields *@
+                    <div id="doctorFields">
+                        <hr style="border-color:var(--border);" />
+                        <p class="text-muted mb-3" style="font-size:13px;">
+                            <i class="bi bi-info-circle me-1"></i>Doctor-specific details
+                        </p>
+
+                        <div class="mb-3">
+                            <label for="licenseNumber" class="form-label" style="font-size:14px;font-weight:500;">
+                                License Number <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control" id="licenseNumber" name="licenseNumber"
+                                   placeholder="e.g. DOC-2026-003" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="biography" class="form-label" style="font-size:14px;font-weight:500;">Biography</label>
+                            <textarea class="form-control" id="biography" name="biography" rows="3"
+                                      placeholder="Brief professional summary..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-3 mt-4">
+                        <button type="submit" class="btn-primary-clinic">
+                            <i class="bi bi-person-check-fill"></i> Create Account
+                        </button>
+                        <a asp-action="StaffManagement" class="btn-outline-clinic">Cancel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function toggleDoctorFields() {
+        const isDr = document.getElementById('roleDoctor').checked;
+        document.getElementById('doctorFields').style.display = isDr ? 'block' : 'none';
+        document.getElementById('licenseNumber').required = isDr;
+
+        // Visual card highlight
+        document.querySelector('label[for="roleDoctor"]').style.borderColor = isDr ? 'var(--primary)' : 'var(--border)';
+        document.querySelector('label[for="roleDoctor"]').style.background = isDr ? 'var(--primary-light)' : '';
+        document.querySelector('label[for="roleReceptionist"]').style.borderColor = !isDr ? 'var(--warning)' : 'var(--border)';
+        document.querySelector('label[for="roleReceptionist"]').style.background = !isDr ? '#fff3e0' : '';
+    }
+
+    // Wire up radio buttons for label styling
+    document.getElementById('roleDoctor').addEventListener('change', toggleDoctorFields);
+    document.getElementById('roleReceptionist').addEventListener('change', toggleDoctorFields);
+
+    // Set initial state
+    toggleDoctorFields();
+</script>
+}

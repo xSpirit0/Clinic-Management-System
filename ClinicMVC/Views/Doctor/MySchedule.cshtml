@@ -7,7 +7,10 @@
 
 <div class="page-header">
     <h1>My Schedule</h1>
-    <p>Your weekly working hours and upcoming approved leaves</p>
+    <p>Your weekly working hours and leave requests</p>
+    <a asp-action="SubmitLeave" class="btn btn-primary">
+        <i class="bi bi-calendar-plus me-1"></i>Request Leave
+    </a>
 </div>
 
 <div class="card mb-4">
@@ -70,12 +73,17 @@
 </div>
 
 <div class="card mb-3">
-    <div class="card-header"><i class="bi bi-calendar-minus me-2"></i>Upcoming Approved Leaves</div>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-calendar-minus me-2"></i>My Leave Requests</span>
+        <a asp-action="SubmitLeave" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus me-1"></i>New Request
+        </a>
+    </div>
     <div class="card-body p-0">
         @if (!leaves.Any())
         {
             <div class="text-center py-4">
-                <p style="color:var(--text-light);font-size:14px;">No approved leaves coming up.</p>
+                <p style="color:var(--text-light);font-size:14px;">No leave requests yet.</p>
             </div>
         }
         else
@@ -83,17 +91,40 @@
             <div class="table-responsive">
                 <table class="table mb-0">
                     <thead>
-                        <tr><th>From</th><th>To</th><th>Days</th><th>Reason</th></tr>
+                        <tr><th>From</th><th>To</th><th>Days</th><th>Reason</th><th>Status</th><th>Notes</th></tr>
                     </thead>
                     <tbody>
                         @foreach (var l in leaves)
                         {
                             var days = l.EndDate.DayNumber - l.StartDate.DayNumber + 1;
+                            var statusName = l.LeaveStatus?.LeaveStatus1 ?? "Pending";
+                            var badgeClass = statusName switch
+                            {
+                                "Approved" => "bg-success",
+                                "Rejected" => "bg-danger",
+                                _ => "bg-warning text-dark"
+                            };
                             <tr>
                                 <td style="font-weight:600;font-size:13px;">@l.StartDate.ToString("ddd, dd MMM yyyy")</td>
                                 <td style="font-size:13px;">@l.EndDate.ToString("ddd, dd MMM yyyy")</td>
                                 <td><span class="badge bg-primary">@days</span></td>
                                 <td style="font-size:13px;color:var(--text-mid);">@(l.Reason ?? "—")</td>
+                                <td><span class="badge @badgeClass">@statusName</span></td>
+                                <td style="font-size:13px;color:var(--text-mid);">
+                                    @if (statusName == "Rejected" && !string.IsNullOrWhiteSpace(l.RejectionReason))
+                                    {
+                                        <span style="color:#dc3545;">@l.RejectionReason</span>
+                                    }
+                                    else if (statusName == "Approved" && l.ApprovedAt.HasValue)
+                                    {
+                                        <span>Approved @l.ApprovedAt.Value.ToString("dd MMM yyyy")</span>
+                                    }
+                                    else
+                                    {
+
+                                        <span>—</span>
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -101,9 +132,4 @@
             </div>
         }
     </div>
-</div>
-
-<div class="alert alert-info mb-0" style="font-size:13px;">
-    <i class="bi bi-info-circle me-2"></i>
-    <strong>Note:</strong> Schedule and leave changes must be requested through the Clinic Manager.
 </div>

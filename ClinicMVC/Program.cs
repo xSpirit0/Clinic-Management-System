@@ -1,7 +1,7 @@
 using ClinicAPI.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-
+using ClinicMVC.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // =====================
@@ -10,6 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add MVC controllers and views to the service container
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Add the database context and configure it to use SQL Server
 builder.Services.AddDbContext<ClinicDbContext>(options =>
@@ -35,13 +36,19 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     options.SignIn.RequireConfirmedAccount = false;
 })
     .AddRoles<IdentityRole>()                        // Add support for roles
-    .AddEntityFrameworkStores<ClinicDbContext>();    // Use EF Core for Identity
+    .AddEntityFrameworkStores<ClinicDbContext>();     // Use EF Core for Identity
 
-// Configure the application cookie (for login and access denied paths)
+// Configure the application cookie
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/AccessDenied";
+
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    options.SlidingExpiration = true;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+    options.Cookie.MaxAge = null;
 });
 
 // Named HttpClient for calling the API (Public Lookup + SignalR broadcast trigger)

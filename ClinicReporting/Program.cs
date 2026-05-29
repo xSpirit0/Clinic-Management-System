@@ -5,7 +5,7 @@ builder.Services.AddSession();
 
 builder.Services.AddHttpClient("ClinicAPI", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"]!);
+    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7221");
 });
 
 var app = builder.Build();
@@ -16,6 +16,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 app.UseHttpsRedirection();
+app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.UseAuthorization();

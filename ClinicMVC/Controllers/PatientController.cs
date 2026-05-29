@@ -1,4 +1,5 @@
 ﻿using ClinicAPI.Models;
+using ClinicMVC.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,17 +12,18 @@ namespace ClinicMVC.Controllers
     {
         private readonly ClinicDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificationService _notificationService;
 
         public PatientController(
             ClinicDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            INotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
+            _notificationService = notificationService;
         }
 
-        // Helper - resolves the logged-in user to their PatientProfile row.
-        // Returns null if the user is not logged in or has no patient profile.
         private async Task<PatientProfile?> GetCurrentPatientAsync()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -53,7 +55,6 @@ namespace ClinicMVC.Controllers
                 .Take(5)
                 .ToListAsync();
 
-            // Unread notification count for the navbar bell
             ViewBag.UnreadNotifications = await _context.Notifications
                 .CountAsync(n => n.AspNetUserId == patient.AspNetUserId && !n.IsRead);
 
@@ -167,7 +168,6 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("MyAppointments");
             }
 
-            // Re-check business rule on POST (defence in depth)
             if (appointment.AppointmentStatus.AppointmentStatus1 != "Requested" &&
                 appointment.AppointmentStatus.AppointmentStatus1 != "Confirmed")
             {
@@ -187,7 +187,6 @@ namespace ClinicMVC.Controllers
             appointment.AppointmentStatusId = cancelledStatus.AppointmentStatusId;
             appointment.UpdatedAt = DateTime.Now;
 
-            // Audit trail entry
             _context.AppointmentStatusHistories.Add(new AppointmentStatusHistory
             {
                 AppointmentId = appointment.AppointmentId,
@@ -201,8 +200,7 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Notify the doctor in-system
-            await SendNotificationAsync(
+            await _notificationService.SendAsync(
                 aspNetUserId: appointment.Doctor.AspNetUserId,
                 notificationTypeName: "AppointmentCancelled",
                 title: "Appointment Cancelled",
@@ -332,14 +330,11 @@ namespace ClinicMVC.Controllers
                 .OrderByDescending(n => n.CreatedAt)
                 .ToListAsync();
 
-            
             var unread = notifications.Where(n => !n.IsRead).ToList();
             if (unread.Any())
             {
                 foreach (var n in unread)
-                {
                     n.IsRead = true;
-                }
                 await _context.SaveChangesAsync();
             }
 
@@ -348,7 +343,6 @@ namespace ClinicMVC.Controllers
 
         public async Task<IActionResult> BookAppointment()
         {
-
             var patient = await GetCurrentPatientAsync();
             if (patient == null)
             {
@@ -410,31 +404,30 @@ namespace ClinicMVC.Controllers
             if (isOnLeave)
                 return Json(new List<object>());
 
+            // Single query — fetch all booked slots for this doctor/date at once
+            var bookedSlots = await _context.Appointments
+                .Include(a => a.AppointmentStatus)
+                .Where(a => a.DoctorId == doctorId &&
+                            a.ScheduledDate == date &&
+                            a.AppointmentStatus.AppointmentStatus1 != "Cancelled" &&
+                            a.AppointmentStatus.AppointmentStatus1 != "Missed")
+                .Select(a => a.SlotStartTime)
+                .ToHashSetAsync();
+
             var slots = new List<object>();
             var current = schedule.StartTime;
 
-            while (current.Add(TimeSpan.FromMinutes(
-                schedule.SlotDurationMinutes)) <= schedule.EndTime)
+            while (current.Add(TimeSpan.FromMinutes(schedule.SlotDurationMinutes)) <= schedule.EndTime)
             {
-                var slotEnd = current.Add(
-                    TimeSpan.FromMinutes(schedule.SlotDurationMinutes));
+                var slotEnd = current.Add(TimeSpan.FromMinutes(schedule.SlotDurationMinutes));
 
-                var isBooked = await _context.Appointments
-                    .Include(a => a.AppointmentStatus)
-                    .AnyAsync(a => a.DoctorId == doctorId &&
-                             a.ScheduledDate == date &&
-                             a.SlotStartTime == current &&
-                             a.AppointmentStatus.AppointmentStatus1 != "Cancelled" &&
-                             a.AppointmentStatus.AppointmentStatus1 != "Missed");
-
-                if (!isBooked)
+                if (!bookedSlots.Contains(current))
                 {
                     slots.Add(new
                     {
                         startTime = current.ToString(),
                         endTime = slotEnd.ToString(),
-                        display = current.ToString("HH\\:mm") +
-                                 " - " + slotEnd.ToString("HH\\:mm")
+                        display = current.ToString("HH\\:mm") + " - " + slotEnd.ToString("HH\\:mm")
                     });
                 }
 
@@ -459,7 +452,6 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            
             var isBooked = await _context.Appointments
                 .Include(a => a.AppointmentStatus)
                 .AnyAsync(a => a.DoctorId == doctorId &&
@@ -500,7 +492,6 @@ namespace ClinicMVC.Controllers
 
             _context.Appointments.Add(appointment);
 
-            
             _context.AppointmentStatusHistories.Add(new AppointmentStatusHistory
             {
                 Appointment = appointment,
@@ -512,13 +503,12 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
 
-            
             var doctorProfile = await _context.DoctorProfiles
                 .FirstOrDefaultAsync(d => d.DoctorId == doctorId);
 
             if (doctorProfile != null)
             {
-                await SendNotificationAsync(
+                await _notificationService.SendAsync(
                     aspNetUserId: doctorProfile.AspNetUserId,
                     notificationTypeName: "AppointmentRequested",
                     title: "New Appointment Request",
@@ -534,40 +524,6 @@ namespace ClinicMVC.Controllers
         public IActionResult Index()
         {
             return RedirectToAction("Dashboard");
-        }
-
-        
-        private async Task SendNotificationAsync(
-            string? aspNetUserId,
-            string notificationTypeName,
-            string title,
-            string message,
-            int? appointmentId = null)
-        {
-            if (string.IsNullOrEmpty(aspNetUserId)) return;
-
-            var type = await _context.NotificationTypes
-                .FirstOrDefaultAsync(t => t.Type == notificationTypeName);
-
-            if (type == null)
-            {
-                type = new NotificationType { Type = notificationTypeName };
-                _context.NotificationTypes.Add(type);
-                await _context.SaveChangesAsync();
-            }
-
-            _context.Notifications.Add(new Notification
-            {
-                AspNetUserId = aspNetUserId,
-                NotificationTypeId = type.NotificationTypeId,
-                AppointmentId = appointmentId,
-                Title = title,
-                Message = message,
-                IsRead = false,
-                CreatedAt = DateTime.Now
-            });
-
-            await _context.SaveChangesAsync();
         }
     }
 }

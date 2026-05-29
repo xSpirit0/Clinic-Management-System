@@ -118,7 +118,7 @@ namespace ClinicAPI.Controllers
 
             var query = _context.Appointments
                 .Include(a => a.Doctor).ThenInclude(d => d.AspNetUser)
-                .Include(a => a.Patient)
+                .Include(a => a.Patient).ThenInclude(p => p.AspNetUser)
                 .Include(a => a.Specialization)
                 .Include(a => a.AppointmentStatus)
                 .Where(a => a.AppointmentStatus.AppointmentStatus1 == "Missed")
@@ -138,6 +138,9 @@ namespace ClinicAPI.Controllers
                         ? a.Doctor.AspNetUser.FirstName + " " + a.Doctor.AspNetUser.LastName
                         : "Unknown Doctor",
                     patientId = a.PatientId,
+                    patientName = a.Patient.AspNetUser != null
+                        ? a.Patient.AspNetUser.FirstName + " " + a.Patient.AspNetUser.LastName
+                        : "Unknown Patient",
                     specialization = a.Specialization.Name,
                     status = a.AppointmentStatus.AppointmentStatus1
                 })

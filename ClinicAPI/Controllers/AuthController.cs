@@ -53,7 +53,7 @@ public class AuthController : ControllerBase
             ExpiresAt = DateTime.UtcNow.AddMinutes(
                 int.Parse(_config["Jwt:ExpiryMinutes"]!)),
             Email = user.Email ?? "",
-            FullName = user.UserName ?? "",
+            FullName = $"{user.FirstName} {user.LastName}".Trim(),
             Roles = roles
         });
     }

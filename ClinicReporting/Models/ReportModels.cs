@@ -68,6 +68,8 @@ namespace ClinicReporting.Models
     public class MissedAppointmentItem
     {
         public int AppointmentId { get; set; }
+        public int PatientId { get; set; }
+        public string PatientName { get; set; } = "";
         public DateOnly ScheduledDate { get; set; }
         public TimeOnly SlotStartTime { get; set; }
         public TimeOnly SlotEndTime { get; set; }

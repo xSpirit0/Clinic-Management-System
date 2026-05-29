@@ -1,4 +1,5 @@
 using ClinicAPI.Models;
+using ClinicMVC.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -11,18 +12,20 @@ namespace ClinicMVC.Controllers
     {
         private readonly ClinicDbContext _context;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificationService _notificationService;
 
         public ClinicManagerController(
             ClinicDbContext context,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            INotificationService notificationService)
         {
             _context = context;
             _userManager = userManager;
+            _notificationService = notificationService;
         }
 
         public IActionResult Index() => RedirectToAction("Dashboard");
 
-        // DASHBOARD 
         public async Task<IActionResult> Dashboard()
         {
             var user = await GetCurrentUserAsync();
@@ -61,7 +64,6 @@ namespace ClinicMVC.Controllers
             return View();
         }
 
-        //  DOCTORS LIST
         public async Task<IActionResult> Doctors(string? search)
         {
             var query = _context.DoctorProfiles
@@ -84,7 +86,6 @@ namespace ClinicMVC.Controllers
             return View(await query.OrderBy(d => d.AspNetUser!.FirstName).ToListAsync());
         }
 
-        // DOCTOR DETAILS 
         public async Task<IActionResult> DoctorDetails(int id)
         {
             var doctor = await _context.DoctorProfiles
@@ -114,7 +115,6 @@ namespace ClinicMVC.Controllers
             return View(doctor);
         }
 
-        //TOGGLE DOCTOR ACTIVE STATUS 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleDoctorStatus(int id)
@@ -129,8 +129,7 @@ namespace ClinicMVC.Controllers
             doctor.IsActive = !doctor.IsActive;
             await _context.SaveChangesAsync();
 
-            // Let the doctor know their account status changed.
-            await SendNotificationAsync(
+            await _notificationService.SendAsync(
                 aspNetUserId: doctor.AspNetUserId,
                 notificationTypeName: "AccountStatusChanged",
                 title: doctor.IsActive ? "Account Activated" : "Account Deactivated",
@@ -142,7 +141,6 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("DoctorDetails", new { id });
         }
 
-        //  MANAGE DOCTOR SPECIALIZATIONS 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddSpecialization(int doctorId, int specializationId)
@@ -184,7 +182,6 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("DoctorDetails", new { id = doctorId });
         }
 
-        // SCHEDULE MANAGEMENT
         public async Task<IActionResult> ManageSchedule(int doctorId)
         {
             var doctor = await _context.DoctorProfiles
@@ -222,7 +219,6 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("ManageSchedule", new { doctorId });
             }
 
-            // Check for duplicate day entry
             var existing = await _context.DoctorSchedules
                 .FirstOrDefaultAsync(s => s.DoctorId == doctorId && s.DayOfWeek == dayOfWeek);
 
@@ -266,7 +262,6 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("ManageSchedule", new { doctorId });
         }
 
-        // LEAVE REQUESTS 
         public async Task<IActionResult> LeaveRequests(string filter = "pending")
         {
             var query = _context.DoctorLeaves
@@ -300,7 +295,6 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Include Doctor so we can notify them of the decision.
             var leave = await _context.DoctorLeaves
                 .Include(l => l.LeaveStatus)
                 .Include(l => l.Doctor)
@@ -328,8 +322,7 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Notify the doctor their leave was approved.
-            await SendNotificationAsync(
+            await _notificationService.SendAsync(
                 aspNetUserId: leave.Doctor?.AspNetUserId,
                 notificationTypeName: "LeaveApproved",
                 title: "Leave Request Approved",
@@ -352,7 +345,6 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Include Doctor so we can notify them of the decision.
             var leave = await _context.DoctorLeaves
                 .Include(l => l.LeaveStatus)
                 .Include(l => l.Doctor)
@@ -380,8 +372,7 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
 
-            // Notify the doctor their leave was rejected.
-            await SendNotificationAsync(
+            await _notificationService.SendAsync(
                 aspNetUserId: leave.Doctor?.AspNetUserId,
                 notificationTypeName: "LeaveRejected",
                 title: "Leave Request Rejected",
@@ -393,7 +384,6 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("LeaveRequests");
         }
 
-        // SPECIALIZATIONS 
         public async Task<IActionResult> Specializations()
         {
             var specs = await _context.Specializations
@@ -460,7 +450,6 @@ namespace ClinicMVC.Controllers
             return RedirectToAction("Specializations");
         }
 
-        // PATIENTS LIST
         public async Task<IActionResult> Patients(string? search)
         {
             var query = _context.PatientProfiles
@@ -482,7 +471,6 @@ namespace ClinicMVC.Controllers
             return View(await query.OrderBy(p => p.AspNetUser!.FirstName).ToListAsync());
         }
 
-        //ALL APPOINTMENTS
         public async Task<IActionResult> AllAppointments(
             string filter = "today",
             string? status = null,
@@ -532,7 +520,6 @@ namespace ClinicMVC.Controllers
                 .ToListAsync());
         }
 
-        // NOTIFICATIONS 
         public async Task<IActionResult> Notifications()
         {
             var user = await GetCurrentUserAsync();
@@ -558,45 +545,206 @@ namespace ClinicMVC.Controllers
             return View(notifications);
         }
 
-        // ==================== HELPERS ====================
+        public async Task<IActionResult> StaffManagement()
+        {
+            var doctors = await _userManager.GetUsersInRoleAsync("Doctor");
+            var receptionists = await _userManager.GetUsersInRoleAsync("Receptionist");
+
+            var doctorProfiles = await _context.DoctorProfiles
+                .ToDictionaryAsync(d => d.AspNetUserId ?? "", d => d);
+
+            ViewBag.Doctors = doctors.OrderBy(u => u.FirstName).ToList();
+            ViewBag.Receptionists = receptionists.OrderBy(u => u.FirstName).ToList();
+            ViewBag.DoctorProfiles = doctorProfiles;
+            return View();
+        }
+
+        public IActionResult CreateStaff()
+        {
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateStaff(
+            string role,
+            string firstName,
+            string lastName,
+            string email,
+            string phoneNumber,
+            string password,
+            string? licenseNumber,
+            string? biography)
+        {
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName) ||
+                string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) ||
+                string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                TempData["Error"] = "First name, last name, email, phone, and password are required.";
+                return View();
+            }
+
+            if (role != "Doctor" && role != "Receptionist")
+            {
+                TempData["Error"] = "Role must be Doctor or Receptionist.";
+                return View();
+            }
+
+            if (role == "Doctor" && string.IsNullOrWhiteSpace(licenseNumber))
+            {
+                TempData["Error"] = "License number is required for doctors.";
+                return View();
+            }
+
+            var existing = await _userManager.FindByEmailAsync(email.Trim());
+            if (existing != null)
+            {
+                TempData["Error"] = "An account with this email already exists.";
+                return View();
+            }
+
+            var user = new ApplicationUser
+            {
+                UserName = email.Trim(),
+                Email = email.Trim(),
+                FirstName = firstName.Trim(),
+                LastName = lastName.Trim(),
+                PhoneNumber = phoneNumber.Trim(),
+                IsActive = true,
+                CreatedAt = DateTime.Now,
+                EmailConfirmed = true
+            };
+
+            var result = await _userManager.CreateAsync(user, password);
+            if (!result.Succeeded)
+            {
+                TempData["Error"] = "Could not create account: " +
+                    string.Join("; ", result.Errors.Select(e => e.Description));
+                return View();
+            }
+
+            await _userManager.AddToRoleAsync(user, role);
+
+            if (role == "Doctor")
+            {
+                _context.DoctorProfiles.Add(new DoctorProfile
+                {
+                    AspNetUserId = user.Id,
+                    LicenseNumber = licenseNumber!.Trim(),
+                    Biography = biography?.Trim(),
+                    IsActive = true
+                });
+                await _context.SaveChangesAsync();
+            }
+
+            TempData["Success"] = $"{role} account created for {firstName} {lastName}.";
+            return RedirectToAction("StaffManagement");
+        }
+
+        public async Task<IActionResult> EditStaff(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                TempData["Error"] = "Staff member not found.";
+                return RedirectToAction("StaffManagement");
+            }
+
+            var roles = await _userManager.GetRolesAsync(user);
+            var role = roles.FirstOrDefault() ?? "";
+
+            DoctorProfile? doctorProfile = null;
+            if (role == "Doctor")
+                doctorProfile = await _context.DoctorProfiles
+                    .FirstOrDefaultAsync(d => d.AspNetUserId == user.Id);
+
+            ViewBag.Role = role;
+            ViewBag.DoctorProfile = doctorProfile;
+            return View(user);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditStaff(
+            string id,
+            string firstName,
+            string lastName,
+            string phoneNumber,
+            string? licenseNumber,
+            string? biography)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                TempData["Error"] = "Staff member not found.";
+                return RedirectToAction("StaffManagement");
+            }
+
+            if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName) ||
+                string.IsNullOrWhiteSpace(phoneNumber))
+            {
+                TempData["Error"] = "First name, last name, and phone number are required.";
+                return RedirectToAction("EditStaff", new { id });
+            }
+
+            user.FirstName = firstName.Trim();
+            user.LastName = lastName.Trim();
+            user.PhoneNumber = phoneNumber.Trim();
+            await _userManager.UpdateAsync(user);
+
+            var doctorProfile = await _context.DoctorProfiles
+                .FirstOrDefaultAsync(d => d.AspNetUserId == id);
+
+            if (doctorProfile != null)
+            {
+                if (!string.IsNullOrWhiteSpace(licenseNumber))
+                    doctorProfile.LicenseNumber = licenseNumber.Trim();
+                doctorProfile.Biography = biography?.Trim();
+                await _context.SaveChangesAsync();
+            }
+
+            TempData["Success"] = $"{firstName} {lastName}'s profile updated.";
+            return RedirectToAction("StaffManagement");
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleStaffActive(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null)
+            {
+                TempData["Error"] = "Staff member not found.";
+                return RedirectToAction("StaffManagement");
+            }
+
+            user.IsActive = !user.IsActive;
+            await _userManager.UpdateAsync(user);
+
+            var doctorProfile = await _context.DoctorProfiles
+                .FirstOrDefaultAsync(d => d.AspNetUserId == id);
+            if (doctorProfile != null)
+            {
+                doctorProfile.IsActive = user.IsActive;
+                await _context.SaveChangesAsync();
+            }
+
+            await _notificationService.SendAsync(
+                aspNetUserId: user.Id,
+                notificationTypeName: "AccountStatusChanged",
+                title: user.IsActive ? "Account Activated" : "Account Deactivated",
+                message: user.IsActive
+                    ? "Your account has been activated by the clinic manager."
+                    : "Your account has been deactivated by the clinic manager.");
+
+            var name = $"{user.FirstName} {user.LastName}";
+            TempData["Success"] = $"{name}'s account has been {(user.IsActive ? "activated" : "deactivated")}.";
+            return RedirectToAction("StaffManagement");
+        }
 
         private async Task<ApplicationUser?> GetCurrentUserAsync()
         {
             return await _userManager.GetUserAsync(User);
-        }
-
-        // Creates an in-system notification, creating the NotificationType on the fly if missing.
-        private async Task SendNotificationAsync(
-            string? aspNetUserId,
-            string notificationTypeName,
-            string title,
-            string message,
-            int? appointmentId = null)
-        {
-            if (string.IsNullOrEmpty(aspNetUserId)) return;
-
-            var type = await _context.NotificationTypes
-                .FirstOrDefaultAsync(t => t.Type == notificationTypeName);
-
-            if (type == null)
-            {
-                type = new NotificationType { Type = notificationTypeName };
-                _context.NotificationTypes.Add(type);
-                await _context.SaveChangesAsync();
-            }
-
-            _context.Notifications.Add(new Notification
-            {
-                AspNetUserId = aspNetUserId,
-                NotificationTypeId = type.NotificationTypeId,
-                AppointmentId = appointmentId,
-                Title = title,
-                Message = message,
-                IsRead = false,
-                CreatedAt = DateTime.Now
-            });
-
-            await _context.SaveChangesAsync();
         }
     }
 }

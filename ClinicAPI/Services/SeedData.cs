@@ -7,10 +7,9 @@ namespace ClinicAPI.Services
     {
         public static async Task InitializeAsync(IServiceProvider serviceProvider)
         {
-            using var scope = serviceProvider.CreateScope();
-            var context = scope.ServiceProvider.GetRequiredService<ClinicDbContext>();
-            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
-            var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+            var context = serviceProvider.GetRequiredService<ClinicDbContext>();
+            var userManager = serviceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
             await context.Database.MigrateAsync();
             var roles = new[] { "ClinicManager", "Doctor", "Receptionist", "Patient" };
             foreach (var role in roles)

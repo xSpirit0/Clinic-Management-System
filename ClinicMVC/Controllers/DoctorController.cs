@@ -1,4 +1,5 @@
 using ClinicAPI.Models;
+using ClinicMVC.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -12,18 +13,20 @@ namespace ClinicMVC.Controllers
         private readonly ClinicDbContext _context;
         private readonly IHttpClientFactory _httpClientFactory;
         private readonly UserManager<ApplicationUser> _userManager;
+        private readonly INotificationService _notificationService;
 
         public DoctorController(
             ClinicDbContext context,
             IHttpClientFactory httpClientFactory,
-            UserManager<ApplicationUser> userManager)
+            UserManager<ApplicationUser> userManager,
+            INotificationService notificationService)
         {
             _context = context;
             _httpClientFactory = httpClientFactory;
             _userManager = userManager;
+            _notificationService = notificationService;
         }
 
-        // Helper - resolves the logged-in user to their DoctorProfile row.
         private async Task<DoctorProfile?> GetCurrentDoctorAsync()
         {
             var user = await _userManager.GetUserAsync(User);
@@ -78,7 +81,6 @@ namespace ClinicMVC.Controllers
                 .ThenBy(a => a.SlotStartTime)
                 .ToListAsync();
 
-            // Unread notification count for the navbar bell
             ViewBag.UnreadNotifications = await _context.Notifications
                 .CountAsync(n => n.AspNetUserId == doctor.AspNetUserId && !n.IsRead);
 
@@ -223,8 +225,6 @@ namespace ClinicMVC.Controllers
 
             await _context.SaveChangesAsync();
             await NotifyWaitingRoomAsync();
-
-            // Notify the patient when the status changes
             await SendStatusChangeNotificationToPatientAsync(appointment, newStatus);
 
             TempData["Success"] = $"Appointment status updated to '{newStatus}'.";
@@ -233,14 +233,15 @@ namespace ClinicMVC.Controllers
 
         private bool IsValidTransition(string from, string to)
         {
-            if (to == "Cancelled" || to == "Missed") return true;
-
             return (from, to) switch
             {
                 ("Requested", "Confirmed") => true,
                 ("Confirmed", "CheckedIn") => true,
                 ("CheckedIn", "InProgress") => true,
                 ("InProgress", "Completed") => true,
+                ("Confirmed", "Missed") => true,
+                ("CheckedIn", "Missed") => true,
+                ("InProgress", "Missed") => true,
                 _ => false
             };
         }
@@ -352,10 +353,9 @@ namespace ClinicMVC.Controllers
             await _context.SaveChangesAsync();
             await NotifyWaitingRoomAsync();
 
-            // Notify the patient that the visit is complete (only on first save)
             if (!wasAlreadyCompleted)
             {
-                await SendNotificationAsync(
+                await _notificationService.SendAsync(
                     aspNetUserId: appointment.Patient.AspNetUserId,
                     notificationTypeName: "VisitCompleted",
                     title: "Visit Completed",
@@ -423,7 +423,6 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("MyAppointments");
             }
 
-            // Filter out empty rows
             var validIndexes = new List<int>();
             for (int i = 0; i < medicationName.Count; i++)
             {
@@ -465,8 +464,7 @@ namespace ClinicMVC.Controllers
             await _context.SaveChangesAsync();
             await NotifyWaitingRoomAsync();
 
-            // Notify the patient that a new prescription has been issued
-            await SendNotificationAsync(
+            await _notificationService.SendAsync(
                 aspNetUserId: visit.Appointment.Patient.AspNetUserId,
                 notificationTypeName: "PrescriptionIssued",
                 title: "Prescription Issued",
@@ -475,8 +473,7 @@ namespace ClinicMVC.Controllers
                 appointmentId: visit.AppointmentId);
 
             TempData["Success"] = $"Prescription with {validIndexes.Count} medication(s) added.";
-            return RedirectToAction("AppointmentDetails",
-                new { id = visit.AppointmentId });
+            return RedirectToAction("AppointmentDetails", new { id = visit.AppointmentId });
         }
 
         public async Task<IActionResult> MyPatients()
@@ -510,7 +507,6 @@ namespace ClinicMVC.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Verify this patient has had at least one appointment with me
             var hasSeen = await _context.Appointments
                 .AnyAsync(a => a.PatientId == id && a.DoctorId == doctor.DoctorId);
 
@@ -561,18 +557,111 @@ namespace ClinicMVC.Controllers
                 .ThenBy(s => s.StartTime)
                 .ToListAsync();
 
-            // Approved leave for the next 60 days
-            var today = DateOnly.FromDateTime(DateTime.Today);
             var leaves = await _context.DoctorLeaves
                 .Include(l => l.LeaveStatus)
-                .Where(l => l.DoctorId == doctor.DoctorId &&
-                            l.LeaveStatus.LeaveStatus1 == "Approved" &&
-                            l.EndDate >= today)
-                .OrderBy(l => l.StartDate)
+                .Where(l => l.DoctorId == doctor.DoctorId)
+                .OrderByDescending(l => l.StartDate)
                 .ToListAsync();
 
             ViewBag.Leaves = leaves;
             return View(schedules);
+        }
+
+        public async Task<IActionResult> SubmitLeave()
+        {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+            return View();
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SubmitLeave(DateOnly startDate, DateOnly endDate, string? reason)
+        {
+            var doctor = await GetCurrentDoctorAsync();
+            if (doctor == null)
+            {
+                TempData["Error"] = "Doctor profile not found.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            var today = DateOnly.FromDateTime(DateTime.Today);
+
+            if (startDate < today)
+                ModelState.AddModelError("startDate", "Start date cannot be in the past.");
+
+            if (endDate < startDate)
+                ModelState.AddModelError("endDate", "End date must be on or after the start date.");
+
+            if (ModelState.IsValid)
+            {
+                var overlap = await _context.DoctorLeaves
+                    .Include(l => l.LeaveStatus)
+                    .AnyAsync(l => l.DoctorId == doctor.DoctorId &&
+                                   (l.LeaveStatus.LeaveStatus1 == "Pending" ||
+                                    l.LeaveStatus.LeaveStatus1 == "Approved") &&
+                                   l.StartDate <= endDate &&
+                                   l.EndDate >= startDate);
+
+                if (overlap)
+                    ModelState.AddModelError("", "You already have a pending or approved leave that overlaps with these dates.");
+            }
+
+            if (!ModelState.IsValid)
+                return View();
+
+            var pendingStatus = await _context.LeaveStatuses
+                .FirstOrDefaultAsync(s => s.LeaveStatus1 == "Pending");
+
+            if (pendingStatus == null)
+            {
+                TempData["Error"] = "System error: Leave status not configured.";
+                return View();
+            }
+
+            var leave = new DoctorLeave
+            {
+                DoctorId = doctor.DoctorId,
+                StartDate = startDate,
+                EndDate = endDate,
+                Reason = reason,
+                LeaveStatusId = pendingStatus.LeaveStatusId
+            };
+
+            _context.DoctorLeaves.Add(leave);
+            await _context.SaveChangesAsync();
+
+            var managerRole = await _context.Roles.FirstOrDefaultAsync(r => r.Name == "ClinicManager");
+            if (managerRole != null)
+            {
+                var managerUserIds = await _context.UserRoles
+                    .Where(ur => ur.RoleId == managerRole.Id)
+                    .Select(ur => ur.UserId)
+                    .ToListAsync();
+
+                var doctorUser = await _userManager.FindByIdAsync(doctor.AspNetUserId);
+                var doctorName = doctorUser != null
+                    ? $"Dr. {doctorUser.FirstName} {doctorUser.LastName}"
+                    : "A doctor";
+
+                foreach (var managerId in managerUserIds)
+                {
+                    await _notificationService.SendAsync(
+                        aspNetUserId: managerId,
+                        notificationTypeName: "LeaveRequested",
+                        title: "New Leave Request",
+                        message: $"{doctorName} has submitted a leave request from " +
+                                 $"{startDate:dd MMM yyyy} to {endDate:dd MMM yyyy}." +
+                                 (string.IsNullOrWhiteSpace(reason) ? "" : $" Reason: {reason}"));
+                }
+            }
+
+            TempData["Success"] = "Leave request submitted successfully. The clinic manager will review it.";
+            return RedirectToAction("MySchedule");
         }
 
         public async Task<IActionResult> Notifications()
@@ -590,23 +679,17 @@ namespace ClinicMVC.Controllers
                 .OrderByDescending(n => n.CreatedAt)
                 .ToListAsync();
 
-            // Mark unread notifications as read on view
             var unread = notifications.Where(n => !n.IsRead).ToList();
             if (unread.Any())
             {
                 foreach (var n in unread)
-                {
                     n.IsRead = true;
-                }
                 await _context.SaveChangesAsync();
             }
 
             return View(notifications);
         }
 
-        // Helper - notifies the patient when the doctor changes appointment status.
-        // Sends different messages depending on the new status; skips statuses
-        // the patient doesn't need to be told about.
         private async Task SendStatusChangeNotificationToPatientAsync(
             Appointment appointment, string newStatus)
         {
@@ -638,7 +721,7 @@ namespace ClinicMVC.Controllers
 
             if (payload == null) return;
 
-            await SendNotificationAsync(
+            await _notificationService.SendAsync(
                 aspNetUserId: patientAspNetUserId,
                 notificationTypeName: payload.Value.typeName,
                 title: payload.Value.title,
@@ -646,47 +729,11 @@ namespace ClinicMVC.Controllers
                 appointmentId: appointment.AppointmentId);
         }
 
-        // Helper - sends an in-system notification.
-        private async Task SendNotificationAsync(
-            string? aspNetUserId,
-            string notificationTypeName,
-            string title,
-            string message,
-            int? appointmentId = null)
-        {
-            if (string.IsNullOrEmpty(aspNetUserId)) return;
-
-            var type = await _context.NotificationTypes
-                .FirstOrDefaultAsync(t => t.Type == notificationTypeName);
-
-            if (type == null)
-            {
-                type = new NotificationType { Type = notificationTypeName };
-                _context.NotificationTypes.Add(type);
-                await _context.SaveChangesAsync();
-            }
-
-            _context.Notifications.Add(new Notification
-            {
-                AspNetUserId = aspNetUserId,
-                NotificationTypeId = type.NotificationTypeId,
-                AppointmentId = appointmentId,
-                Title = title,
-                Message = message,
-                IsRead = false,
-                CreatedAt = DateTime.Now
-            });
-
-            await _context.SaveChangesAsync();
-        }
-
-        // Calls the API to broadcast a Waiting Room refresh signal to all displays.
         private async Task NotifyWaitingRoomAsync()
         {
             try
             {
-                var client = _httpClientFactory.CreateClient();
-                client.BaseAddress = new Uri("https://localhost:7221/");
+                var client = _httpClientFactory.CreateClient("ClinicApi");
                 await client.PostAsync("api/waitingroom/notify-update", null);
             }
             catch (Exception ex)

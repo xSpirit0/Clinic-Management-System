@@ -15,6 +15,18 @@ namespace ClinicMVC.Controllers
 
         public IActionResult Index()
         {
+            if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                if (User.IsInRole("Patient"))
+                    return RedirectToAction("Dashboard", "Patient");
+                if (User.IsInRole("Doctor"))
+                    return RedirectToAction("Dashboard", "Doctor");
+                if (User.IsInRole("Receptionist"))
+                    return RedirectToAction("Dashboard", "Receptionist");
+                if (User.IsInRole("ClinicManager"))
+                    return RedirectToAction("Dashboard", "ClinicManager");
+            }
+
             return View();
         }
 
