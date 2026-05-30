@@ -15,7 +15,10 @@ namespace ClinicMVC.ViewModels
         [StringLength(50, ErrorMessage = "Last name cannot be longer than {1} characters.")]
         public required string LastName { get; set; }
 
-      
+        [Required]
+        [Display(Name = "Username")]
+        [StringLength(50, ErrorMessage = "Username cannot be longer than 50 characters.")]
+        public required string UserName { get; set; }
 
         [Required]
         [EmailAddress]
