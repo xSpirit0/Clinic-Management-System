@@ -249,23 +249,64 @@
 
     <script src="~/lib/microsoft/signalr/dist/browser/signalr.js"></script>
     <script>
-        // Connect directly to the API's Waiting Room Hub.
-        // The Hub lives in the API project; the browser is the SignalR client.
+        
+        function buildCard(a) {
+            return `
+                <div class="appt-card">
+                    <div class="time">${a.time}</div>
+                    <div class="name">${a.patientName}</div>
+                    <div class="doctor">Dr. ${a.doctorName} &middot; ${a.specialization}</div>
+                </div>`;
+        }
+
+       
+        function buildColumn(appointments, emptyMessage) {
+            if (appointments.length === 0)
+                return `<div class="empty">${emptyMessage}</div>`;
+            return appointments.map(buildCard).join('');
+        }
+
+        
+        function refreshBoard() {
+            fetch('@Url.Action("WaitingRoomData", "Receptionist")')
+                .then(r => r.json())
+                .then(data => {
+                    
+                    document.querySelector('.col-confirmed .col-body').innerHTML =
+                        buildColumn(data.confirmed, 'No confirmed appointments');
+                    document.querySelector('.col-checkedin .col-body').innerHTML =
+                        buildColumn(data.checkedIn, 'No one waiting');
+                    document.querySelector('.col-inprogress .col-body').innerHTML =
+                        buildColumn(data.inProgress, 'No active visits');
+                    document.querySelector('.col-completed .col-body').innerHTML =
+                        buildColumn(data.completed, 'None yet today');
+
+                    
+                    document.querySelectorAll('.count-badge')[0].textContent = data.confirmed.length;
+                    document.querySelectorAll('.count-badge')[1].textContent = data.checkedIn.length;
+                    document.querySelectorAll('.count-badge')[2].textContent = data.inProgress.length;
+                    document.querySelectorAll('.count-badge')[3].textContent = data.completed.length;
+
+                    
+                    document.querySelector('.board-header strong').textContent = data.lastUpdated;
+                })
+                .catch(err => console.error('Board refresh failed:', err));
+        }
+
+        
         const connection = new signalR.HubConnectionBuilder()
             .withUrl("https://localhost:7221/hubs/waitingroom")
             .withAutomaticReconnect()
             .build();
 
-        // When the server broadcasts "WaitingRoomUpdated", reload the page.
-        // Full reload is the simplest approach - it guarantees fresh data
-        // and avoids manual DOM manipulation.
+        
         connection.on("WaitingRoomUpdated", function () {
-            console.log("Waiting Room update received - reloading");
-            location.reload();
+            console.log("WaitingRoomUpdated received — refreshing board");
+            refreshBoard();
         });
 
         connection.start()
-            .then(() => console.log("SignalR connected to API Waiting Room Hub"))
+            .then(() => console.log("SignalR connected to Waiting Room Hub"))
             .catch(err => console.error("SignalR connection failed:", err));
     </script>
 </body>

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ClinicAPI.Controllers
 {
+    // Reports API - all endpoints are ClinicManager only.
     [Authorize(Roles = "ClinicManager")]
     [Route("api/reports")]
     [ApiController]
@@ -17,6 +18,8 @@ namespace ClinicAPI.Controllers
             _context = context;
         }
 
+        // Returns null when the range is valid, a BadRequest result when it isn't.
+        // Callers just do: var err = ValidateDateRange(...); if (err != null) return err;
         private IActionResult? ValidateDateRange(DateOnly? from, DateOnly? to)
         {
             if (from.HasValue && to.HasValue && from.Value > to.Value)
@@ -25,6 +28,7 @@ namespace ClinicAPI.Controllers
             return null;
         }
 
+        // Shared date filter so each endpoint doesn't repeat the same Where clauses.
         private IQueryable<Appointment> ApplyDateFilter(
             IQueryable<Appointment> query,
             DateOnly? from,
@@ -104,6 +108,7 @@ namespace ClinicAPI.Controllers
                 to,
                 totalAppointments = total,
                 cancelledAppointments = cancelled,
+                // Guard against division by zero when there are no appointments in range.
                 cancellationRatePercentage = total == 0
                     ? 0
                     : Math.Round((double)cancelled / total * 100, 2)
@@ -118,7 +123,7 @@ namespace ClinicAPI.Controllers
 
             var query = _context.Appointments
                 .Include(a => a.Doctor).ThenInclude(d => d.AspNetUser)
-                .Include(a => a.Patient)
+                .Include(a => a.Patient).ThenInclude(p => p.AspNetUser)
                 .Include(a => a.Specialization)
                 .Include(a => a.AppointmentStatus)
                 .Where(a => a.AppointmentStatus.AppointmentStatus1 == "Missed")
@@ -138,6 +143,9 @@ namespace ClinicAPI.Controllers
                         ? a.Doctor.AspNetUser.FirstName + " " + a.Doctor.AspNetUser.LastName
                         : "Unknown Doctor",
                     patientId = a.PatientId,
+                    patientName = a.Patient.AspNetUser != null
+                        ? a.Patient.AspNetUser.FirstName + " " + a.Patient.AspNetUser.LastName
+                        : "Unknown Patient",
                     specialization = a.Specialization.Name,
                     status = a.AppointmentStatus.AppointmentStatus1
                 })
@@ -188,6 +196,7 @@ namespace ClinicAPI.Controllers
         [HttpGet("appointments/upcoming")]
         public async Task<IActionResult> GetUpcomingAppointments(int days = 7)
         {
+            // Cap at 365 so someone doesn't accidentally request 10 years of data.
             if (days <= 0 || days > 365)
                 return BadRequest("Days must be between 1 and 365.");
 
@@ -252,6 +261,7 @@ namespace ClinicAPI.Controllers
             });
         }
 
+        // Shows appointment counts for each doctor, so we can see which doctors are busiest and how many appointments they have in different statuses.
         [HttpGet("doctors/utilization")]
         public async Task<IActionResult> GetDoctorUtilization(DateOnly? from, DateOnly? to)
         {
@@ -290,47 +300,8 @@ namespace ClinicAPI.Controllers
             });
         }
 
-        [HttpGet("doctors/workload-by-status")]
-        public async Task<IActionResult> GetDoctorWorkloadByStatus(DateOnly? from, DateOnly? to)
-        {
-            var validation = ValidateDateRange(from, to);
-            if (validation != null) return validation;
 
-            var query = _context.Appointments
-                .Include(a => a.Doctor).ThenInclude(d => d.AspNetUser)
-                .Include(a => a.AppointmentStatus)
-                .AsQueryable();
-
-            query = ApplyDateFilter(query, from, to);
-
-            var result = await query
-                .GroupBy(a => new
-                {
-                    a.DoctorId,
-                    DoctorName = a.Doctor.AspNetUser != null
-                        ? a.Doctor.AspNetUser.FirstName + " " + a.Doctor.AspNetUser.LastName
-                        : "Unknown Doctor",
-                    Status = a.AppointmentStatus.AppointmentStatus1
-                })
-                .Select(g => new
-                {
-                    doctorId = g.Key.DoctorId,
-                    doctorName = g.Key.DoctorName,
-                    status = g.Key.Status,
-                    count = g.Count()
-                })
-                .OrderBy(x => x.doctorName)
-                .ThenBy(x => x.status)
-                .ToListAsync();
-
-            return Ok(new
-            {
-                from,
-                to,
-                workload = result
-            });
-        }
-
+        // Shows appointment counts grouped by specialization, so we can see which specializations are most in demand.
         [HttpGet("specializations/appointments")]
         public async Task<IActionResult> GetAppointmentsBySpecialization(DateOnly? from, DateOnly? to)
         {

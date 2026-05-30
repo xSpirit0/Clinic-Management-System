@@ -31,7 +31,7 @@
     </div>
 </div>
 
-<!-- Filter Tabs -->
+
 <div class="d-flex gap-2 mb-4">
     @foreach (var (label, val, color) in new[] {
         ("Pending",  "pending",  "btn-warning"),
@@ -71,14 +71,14 @@ else
             <div class="card">
                 <div class="card-body">
                     <div class="row align-items-center g-3">
-                        <!-- Doctor Info -->
+                       
                         <div class="col-md-3">
                             <div style="font-size:12px;color:var(--text-light);margin-bottom:2px;">Doctor</div>
                             <div style="font-weight:600;font-size:14px;">
                                 Dr. @(l.Doctor?.AspNetUser?.FirstName ?? "—") @(l.Doctor?.AspNetUser?.LastName ?? "")
                             </div>
                         </div>
-                        <!-- Dates -->
+                        
                         <div class="col-md-3">
                             <div style="font-size:12px;color:var(--text-light);margin-bottom:2px;">Period</div>
                             <div style="font-weight:500;font-size:13px;">
@@ -86,7 +86,7 @@ else
                             </div>
                             <div style="font-size:12px;color:var(--text-light);">@days day(s)</div>
                         </div>
-                        <!-- Reason -->
+                        
                         <div class="col-md-3">
                             <div style="font-size:12px;color:var(--text-light);margin-bottom:2px;">Reason</div>
                             <div style="font-size:13px;color:var(--text-mid);">@(l.Reason ?? "—")</div>
@@ -97,7 +97,7 @@ else
                                 </div>
                             }
                         </div>
-                        <!-- Status & Actions -->
+                        
                         <div class="col-md-3">
                             <div class="d-flex flex-column gap-2 align-items-end">
                                 <span class="badge @lbc" style="font-size:12px;padding:5px 12px;">@lStatus</span>
@@ -125,7 +125,7 @@ else
                 </div>
             </div>
 
-            <!-- Reject Modal -->
+           
             <div class="modal fade" id="rejectModal-@l.DoctorLeaveId" tabindex="-1">
                 <div class="modal-dialog">
                     <div class="modal-content">

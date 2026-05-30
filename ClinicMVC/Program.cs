@@ -1,15 +1,14 @@
 using ClinicAPI.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-
+using ClinicMVC.Services;
+// This is the main entry point for the ClinicMVC application. It sets up the web application, configures services, and defines the middleware pipeline. The code uses the minimal hosting model introduced in .NET 6, which simplifies the setup of ASP.NET Core applications. The application is configured to use MVC controllers with views, Entity Framework Core for database access, and ASP.NET Identity for authentication and authorization. Additionally, it registers a custom notification service and configures an HttpClient for making API calls to a clinic API.
 var builder = WebApplication.CreateBuilder(args);
 
-// =====================
-// Add services
-// =====================
 
 // Add MVC controllers and views to the service container
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
 // Add the database context and configure it to use SQL Server
 builder.Services.AddDbContext<ClinicDbContext>(options =>
@@ -34,14 +33,20 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
     options.User.RequireUniqueEmail = true;
     options.SignIn.RequireConfirmedAccount = false;
 })
-    .AddRoles<IdentityRole>()                        // Add support for roles
-    .AddEntityFrameworkStores<ClinicDbContext>();    // Use EF Core for Identity
+    .AddRoles<IdentityRole>()                        
+    .AddEntityFrameworkStores<ClinicDbContext>();     
 
-// Configure the application cookie (for login and access denied paths)
+// Configure the application cookie
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
     options.AccessDeniedPath = "/Account/AccessDenied";
+
+    options.ExpireTimeSpan = TimeSpan.FromHours(8);
+    options.SlidingExpiration = true;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SecurePolicy = Microsoft.AspNetCore.Http.CookieSecurePolicy.Always;
+    options.Cookie.MaxAge = null;
 });
 
 // Named HttpClient for calling the API (Public Lookup + SignalR broadcast trigger)
@@ -56,105 +61,10 @@ builder.Services.AddHttpClient("ClinicApi", client =>
 // Generic HttpClient registration (kept for any unnamed factory usage)
 builder.Services.AddHttpClient();
 
-// =====================
-// Build app (ONLY ONCE)
-// =====================
+// Build the application
 var app = builder.Build();
 
-// =====================
-// Seed roles and demo users on startup
-// =====================
-using (var scope = app.Services.CreateScope())
-{
-    var roleManager = scope.ServiceProvider
-        .GetRequiredService<RoleManager<IdentityRole>>();
 
-    // List of roles to create if they don't exist
-    string[] roles = { "ClinicManager", "Patient", "Doctor", "Receptionist" };
-
-    foreach (var role in roles)
-    {
-        if (!await roleManager.RoleExistsAsync(role))
-        {
-            await roleManager.CreateAsync(new IdentityRole(role));
-        }
-    }
-
-    var userManager = scope.ServiceProvider
-        .GetRequiredService<UserManager<ApplicationUser>>();
-
-    // Seed ClinicManager user
-    var adminEmail = "clinicManager@Clinic.com";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-    if (adminUser == null)
-    {
-        adminUser = new ApplicationUser
-        {
-            UserName = adminEmail,
-            FirstName = "Ali",
-            LastName = "Ahmed",
-            Email = adminEmail,
-            EmailConfirmed = true
-        };
-        await userManager.CreateAsync(adminUser, "Admin1234@");
-        await userManager.AddToRoleAsync(adminUser, "ClinicManager");
-    }
-
-    // Seed Doctor user
-    var doctorEmail = "doctor1@Clinic.com";
-    var doctorUser = await userManager.FindByEmailAsync(doctorEmail);
-    if (doctorUser == null)
-    {
-        doctorUser = new ApplicationUser
-        {
-            UserName = doctorEmail,
-            FirstName = "Dr. Abbas",
-            LastName = "Hasan",
-            Email = doctorEmail,
-            EmailConfirmed = true
-        };
-        await userManager.CreateAsync(doctorUser, "Doctor1234@");
-        await userManager.AddToRoleAsync(doctorUser, "Doctor");
-    }
-
-    // Seed Patient user
-    var patientEmail = "zahraa@gmail.com";
-    var patientUser = await userManager.FindByEmailAsync(patientEmail);
-    if (patientUser == null)
-    {
-        patientUser = new ApplicationUser
-        {
-            UserName = patientEmail,
-            FirstName = "Zahraa",
-            LastName = "Humaidan",
-            Email = patientEmail,
-            EmailConfirmed = true
-        };
-        await userManager.CreateAsync(patientUser, "Patient1234@");
-        await userManager.AddToRoleAsync(patientUser, "Patient");
-    }
-
-    // Seed Receptionist user
-    var receptionistEmail = "receptionist1@Clinic.com";
-    var receptionistUser = await userManager.FindByEmailAsync(receptionistEmail);
-    if (receptionistUser == null)
-    {
-        receptionistUser = new ApplicationUser
-        {
-            UserName = receptionistEmail,
-            FirstName = "Sara",
-            LastName = "Ali",
-            Email = receptionistEmail,
-            EmailConfirmed = true
-        };
-        await userManager.CreateAsync(receptionistUser, "Receptionist1234@");
-        await userManager.AddToRoleAsync(receptionistUser, "Receptionist");
-    }
-}
-
-// =====================
-// Configure middleware
-// =====================
 
 // If not in development, use custom error page and HSTS for security
 if (!app.Environment.IsDevelopment())
@@ -176,9 +86,6 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// =====================
-// Routing
-// =====================
 
 // Default MVC route
 app.MapControllerRoute(
@@ -189,7 +96,5 @@ app.MapControllerRoute(
 // Razor Pages endpoints (needed for Identity scaffolded pages)
 app.MapRazorPages();
 
-// =====================
-// Run app
-// =====================
+//  Run the application
 app.Run();

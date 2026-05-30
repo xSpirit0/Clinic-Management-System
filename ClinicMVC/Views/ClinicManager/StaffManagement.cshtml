@@ -1,0 +1,212 @@
+@{
+    ViewData["Title"] = "Staff Management";
+    var doctors = ViewBag.Doctors as List<ClinicAPI.Models.ApplicationUser> ?? new();
+    var receptionists = ViewBag.Receptionists as List<ClinicAPI.Models.ApplicationUser> ?? new();
+    var profiles = ViewBag.DoctorProfiles as Dictionary<string, ClinicAPI.Models.DoctorProfile> ?? new();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="mb-1" style="font-family:var(--font-display);font-weight:700;">Staff Management</h3>
+        <p class="text-muted mb-0" style="font-size:14px;">Manage doctor and receptionist accounts</p>
+    </div>
+    <a asp-action="CreateStaff" class="btn-primary-clinic">
+        <i class="bi bi-person-plus-fill"></i> Add Staff Member
+    </a>
+</div>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="bi bi-check-circle-fill me-2"></i>@TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="bi bi-exclamation-circle-fill me-2"></i>@TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+
+<div class="card mb-4" style="border-radius:var(--radius);border:1px solid var(--border);">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background:var(--white);border-bottom:1px solid var(--border);padding:16px 20px;border-radius:var(--radius) var(--radius) 0 0;">
+        <h5 class="mb-0" style="font-family:var(--font-display);font-weight:600;">
+            <i class="bi bi-person-badge me-2 text-primary"></i>Doctors
+            <span class="badge ms-2" style="background:var(--primary-light);color:var(--primary);font-size:12px;">@doctors.Count</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        @if (!doctors.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-person-x" style="font-size:2rem;"></i>
+                <p class="mt-2 mb-0">No doctors registered yet.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table mb-0" style="font-size:14px;">
+                    <thead style="background:var(--surface);">
+                        <tr>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">Name</th>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">Email</th>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">Phone</th>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">License</th>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">Status</th>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var doc in doctors)
+                        {
+                            profiles.TryGetValue(doc.Id, out var profile);
+                            <tr style="border-top:1px solid var(--border);">
+                                <td style="padding:14px 20px;vertical-align:middle;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width:34px;height:34px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0;">
+                                            @doc.FirstName[0]@doc.LastName[0]
+                                        </div>
+                                        <span class="fw-500">Dr. @doc.FirstName @doc.LastName</span>
+                                    </div>
+                                </td>
+                                <td style="padding:14px 20px;vertical-align:middle;color:var(--text-mid);">@doc.Email</td>
+                                <td style="padding:14px 20px;vertical-align:middle;color:var(--text-mid);">@(doc.PhoneNumber ?? "—")</td>
+                                <td style="padding:14px 20px;vertical-align:middle;">
+                                    <code style="font-size:12px;background:var(--surface);padding:2px 6px;border-radius:4px;">@(profile?.LicenseNumber ?? "—")</code>
+                                </td>
+                                <td style="padding:14px 20px;vertical-align:middle;">
+                                    @if (doc.IsActive)
+                                    {
+                                        <span class="badge" style="background:#dcfce7;color:#16a34a;font-weight:500;">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge" style="background:#fee2e2;color:#dc2626;font-weight:500;">Inactive</span>
+                                    }
+                                </td>
+                                <td style="padding:14px 20px;vertical-align:middle;">
+                                    <div class="d-flex gap-2">
+                                        <a asp-action="EditStaff" asp-route-id="@doc.Id"
+                                           class="btn btn-sm btn-outline-secondary" style="font-size:12px;">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                        <form asp-action="ToggleStaffActive" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@doc.Id" />
+                                            <button type="submit"
+                                                    class="btn btn-sm @(doc.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                                                    style="font-size:12px;"
+                                                    onclick="return confirm('@(doc.IsActive ? "Deactivate" : "Activate") Dr. @doc.FirstName @doc.LastName?')">
+                                                @if (doc.IsActive)
+                                                {
+                                                    <i class="bi bi-person-slash"></i><span> Deactivate</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-person-check"></i><span> Activate</span>
+                                                }
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+
+<div class="card" style="border-radius:var(--radius);border:1px solid var(--border);">
+    <div class="card-header d-flex justify-content-between align-items-center"
+         style="background:var(--white);border-bottom:1px solid var(--border);padding:16px 20px;border-radius:var(--radius) var(--radius) 0 0;">
+        <h5 class="mb-0" style="font-family:var(--font-display);font-weight:600;">
+            <i class="bi bi-headset me-2" style="color:var(--warning);"></i>Receptionists
+            <span class="badge ms-2" style="background:#fff3e0;color:#e65100;font-size:12px;">@receptionists.Count</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        @if (!receptionists.Any())
+        {
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-person-x" style="font-size:2rem;"></i>
+                <p class="mt-2 mb-0">No receptionists registered yet.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table mb-0" style="font-size:14px;">
+                    <thead style="background:var(--surface);">
+                        <tr>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">Name</th>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">Email</th>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">Phone</th>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">Status</th>
+                            <th style="padding:12px 20px;font-weight:600;color:var(--text-mid);">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var rec in receptionists)
+                        {
+                            <tr style="border-top:1px solid var(--border);">
+                                <td style="padding:14px 20px;vertical-align:middle;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width:34px;height:34px;border-radius:50%;background:#fff3e0;color:#e65100;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;flex-shrink:0;">
+                                            @rec.FirstName[0]@rec.LastName[0]
+                                        </div>
+                                        <span class="fw-500">@rec.FirstName @rec.LastName</span>
+                                    </div>
+                                </td>
+                                <td style="padding:14px 20px;vertical-align:middle;color:var(--text-mid);">@rec.Email</td>
+                                <td style="padding:14px 20px;vertical-align:middle;color:var(--text-mid);">@(rec.PhoneNumber ?? "—")</td>
+                                <td style="padding:14px 20px;vertical-align:middle;">
+                                    @if (rec.IsActive)
+                                    {
+                                        <span class="badge" style="background:#dcfce7;color:#16a34a;font-weight:500;">Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge" style="background:#fee2e2;color:#dc2626;font-weight:500;">Inactive</span>
+                                    }
+                                </td>
+                                <td style="padding:14px 20px;vertical-align:middle;">
+                                    <div class="d-flex gap-2">
+                                        <a asp-action="EditStaff" asp-route-id="@rec.Id"
+                                           class="btn btn-sm btn-outline-secondary" style="font-size:12px;">
+                                            <i class="bi bi-pencil"></i> Edit
+                                        </a>
+                                        <form asp-action="ToggleStaffActive" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@rec.Id" />
+                                            <button type="submit"
+                                                    class="btn btn-sm @(rec.IsActive ? "btn-outline-danger" : "btn-outline-success")"
+                                                    style="font-size:12px;"
+                                                    onclick="return confirm('@(rec.IsActive ? "Deactivate" : "Activate") @rec.FirstName @rec.LastName?')">
+                                                @if (rec.IsActive)
+                                                {
+                                                    <i class="bi bi-person-slash"></i><span> Deactivate</span>
+                                                }
+                                                else
+                                                {
+                                                    <i class="bi bi-person-check"></i><span> Activate</span>
+                                                }
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

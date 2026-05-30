@@ -32,11 +32,11 @@
     </a>
 </div>
 
-<!-- Filters -->
+
 <div class="card mb-4">
     <div class="card-body">
         <form method="get" asp-action="AllAppointments" class="row g-3 align-items-end">
-            <!-- Date Filter Pills -->
+            
             <div class="col-12">
                 <label class="form-label">Date Range</label>
                 <div class="d-flex gap-2 flex-wrap">
@@ -52,7 +52,7 @@
                     }
                 </div>
             </div>
-            <!-- Status + Search -->
+            
             <div class="col-md-4">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select" onchange="this.form.submit()">
@@ -82,7 +82,7 @@
     </div>
 </div>
 
-<!-- Results -->
+
 <div class="card">
     <div class="card-body p-0">
         @if (!Model.Any())

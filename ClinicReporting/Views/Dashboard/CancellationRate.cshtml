@@ -3,60 +3,92 @@
     ViewData["Title"] = "Cancellation Rate";
 }
 
-<div class="card p-4 mb-4">
-    <h5 class="mb-3">Filter by Date Range</h5>
-    <form method="get" class="row g-3">
-        <div class="col-md-4">
-            <label class="form-label">From</label>
-            <input type="date" name="from" class="form-control" value="@Model?.From" />
-        </div>
-        <div class="col-md-4">
-            <label class="form-label">To</label>
-            <input type="date" name="to" class="form-control" value="@Model?.To" />
-        </div>
-        <div class="col-md-4 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary w-100">Apply Filter</button>
-        </div>
-    </form>
+<div class="page-header">
+    <h1>Cancellation Rate</h1>
+    <p>Proportion of cancelled appointments over a given period</p>
 </div>
 
-<div class="row g-4">
-    <div class="col-md-4">
-        <div class="card p-4 text-center">
-            <div class="text-muted small">Total Appointments</div>
-            <div class="fs-1 fw-bold text-primary">@Model?.TotalAppointments</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card p-4 text-center">
-            <div class="text-muted small">Cancelled</div>
-            <div class="fs-1 fw-bold text-danger">@Model?.CancelledAppointments</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card p-4 text-center">
-            <div class="text-muted small">Cancellation Rate</div>
-            <div class="fs-1 fw-bold text-warning">@Model?.CancellationRatePercentage%</div>
-        </div>
+@if (ViewBag.Error != null)
+{
+    <div class="alert alert-danger mb-4"><i class="bi bi-exclamation-circle me-2"></i>@ViewBag.Error</div>
+}
+
+
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-funnel me-2"></i>Filter by Date Range</div>
+    <div class="card-body">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label">From</label>
+                <input type="date" name="from" class="form-control" value="@Model?.From" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">To</label>
+                <input type="date" name="to" class="form-control" value="@Model?.To" />
+            </div>
+            <div class="col-md-4">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="bi bi-search me-1"></i> Apply Filter
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
-<div class="card p-4 mt-4">
-    <h5 class="mb-3">Overview</h5>
-    <canvas id="cancelChart" height="100" style="max-height: 300px;"></canvas>
+
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="stat-card blue">
+            <div class="stat-num text-primary">@Model?.TotalAppointments</div>
+            <div class="stat-lbl">Total Appointments</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card red">
+            <div class="stat-num" style="color:var(--danger)">@Model?.CancelledAppointments</div>
+            <div class="stat-lbl">Cancelled</div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="stat-card amber">
+            <div class="stat-num" style="color:var(--warning)">@Model?.CancellationRatePercentage<span style="font-size:1.2rem;">%</span></div>
+            <div class="stat-lbl">Cancellation Rate</div>
+        </div>
+    </div>
+</div>
+
+
+<div class="card">
+    <div class="card-header"><i class="bi bi-pie-chart me-2"></i>Cancelled vs Active</div>
+    <div class="card-body d-flex justify-content-center">
+        <div style="max-width:360px;width:100%;">
+            <canvas id="cancelChart"></canvas>
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <script>
-    new Chart(document.getElementById('cancelChart'), {
-        type: 'doughnut',
-        data: {
-            labels: ['Cancelled', 'Others'],
-            datasets: [{
-                data: [@Model?.CancelledAppointments, @((Model?.TotalAppointments ?? 0) - (Model?.CancelledAppointments ?? 0))],
-                backgroundColor: ['#dc3545', '#0d6efd']
-            }]
-        }
-    });
+        new Chart(document.getElementById('cancelChart'), {
+            type: 'doughnut',
+            data: {
+                labels: ['Cancelled', 'Other'],
+                datasets: [{
+                    data: [
+                        @Model?.CancelledAppointments,
+                        @((Model?.TotalAppointments ?? 0) - (Model?.CancelledAppointments ?? 0))
+                    ],
+                    backgroundColor: ['#e53e3e', '#1a56f0'],
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
     </script>
 }

@@ -7,13 +7,16 @@ namespace ClinicReporting.Controllers
 {
     public class AuthController : Controller
     {
+        // Dependency for making HTTP requests to the Clinic API for authentication
         private readonly IHttpClientFactory _httpClientFactory;
 
+        // Constructor to inject the IHttpClientFactory dependency, which is used to create HTTP clients for making requests to the Clinic API for authentication purposes.
         public AuthController(IHttpClientFactory httpClientFactory)
         {
             _httpClientFactory = httpClientFactory;
         }
 
+        // GET: /Auth/Login
         [HttpGet]
         public IActionResult Login()
         {
@@ -23,6 +26,7 @@ namespace ClinicReporting.Controllers
             return View();
         }
 
+        // Handle login form submission
         [HttpPost]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
@@ -55,6 +59,7 @@ namespace ClinicReporting.Controllers
             return RedirectToAction("Index", "Dashboard");
         }
 
+        // GET: /Auth/Logout
         public IActionResult Logout()
         {
             HttpContext.Session.Clear();

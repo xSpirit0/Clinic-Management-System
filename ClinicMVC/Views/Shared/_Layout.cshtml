@@ -52,7 +52,6 @@
             font-family: var(--font-display);
         }
 
-        /* ── NAVBAR ── */
         .clinic-navbar {
             background: var(--white);
             border-bottom: 1px solid var(--border);
@@ -186,7 +185,7 @@
             color: #6a1b9a;
         }
 
-        /* ── BUTTONS ── */
+
         .btn-primary-clinic {
             background: var(--primary);
             color: white;
@@ -233,7 +232,6 @@
                 color: var(--primary);
             }
 
-        /* ── OVERRIDE BOOTSTRAP BUTTONS TO USE CLINIC STYLE ── */
         .btn-primary {
             background: var(--primary) !important;
             border-color: var(--primary) !important;
@@ -293,7 +291,6 @@
             font-weight: 600;
         }
 
-        /* ── CARDS ── */
         .card {
             border: 1px solid var(--border) !important;
             border-radius: var(--radius) !important;
@@ -314,7 +311,6 @@
             border-top: 1px solid var(--border) !important;
         }
 
-        /* ── TABLES ── */
         .table {
             font-size: 14px;
         }
@@ -347,7 +343,6 @@
             background: var(--primary-light) !important;
         }
 
-        /* ── BADGES ── */
         .badge {
             font-family: var(--font-display);
             font-size: 11px;
@@ -357,7 +352,6 @@
             letter-spacing: 0.02em;
         }
 
-        /* ── FORMS ── */
         .form-control, .form-select {
             border: 1.5px solid var(--border);
             border-radius: var(--radius-sm) !important;
@@ -381,7 +375,7 @@
             font-family: var(--font-display);
         }
 
-        /* ── ALERTS ── */
+       
         .alert {
             border: none !important;
             border-radius: var(--radius) !important;
@@ -408,7 +402,7 @@
             color: #1e40af !important;
         }
 
-        /* ── STAT CARDS ── */
+        
         .stat-card {
             background: var(--white);
             border: 1px solid var(--border);
@@ -458,7 +452,7 @@
                 font-weight: 500;
             }
 
-        /* ── PAGE HEADER ── */
+       
         .page-header {
             margin-bottom: 1.75rem;
         }
@@ -477,13 +471,14 @@
                 margin: 0;
             }
 
-        /* ── MAIN ── */
+        
         main {
             flex: 1;
             padding: 2rem 0 3rem;
+            min-height: 60vh;
         }
 
-        /* ── FOOTER ── */
+        
         footer {
             background: var(--white);
             border-top: 1px solid var(--border);
@@ -492,7 +487,7 @@
             color: var(--text-light);
         }
 
-        /* ── ACCORDION ── */
+       
         .accordion-item {
             border: 1px solid var(--border) !important;
             border-radius: var(--radius) !important;
@@ -514,13 +509,13 @@
                 box-shadow: none !important;
             }
 
-        /* ── LIST GROUPS ── */
+       
         .list-group-item {
             border-color: var(--border) !important;
             font-size: 14px;
         }
 
-        /* ── MODAL ── */
+       
         .modal-content {
             border: none !important;
             border-radius: var(--radius) !important;
@@ -532,7 +527,7 @@
             font-family: var(--font-display);
         }
 
-        /* ── MOBILE MENU ── */
+        
         .mobile-nav-open {
             overflow: hidden;
         }
@@ -554,38 +549,7 @@
 </head>
 <body>
 
-
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">ClinicMVC</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-                        </li>
-                    </ul>
-                    @await Html.PartialAsync("_LoginPartial")
-
-                </div>
-            </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
-    </div>
-
-
-    <!-- ── NAVBAR ── -->
+ 
     <nav class="clinic-navbar">
         <a class="navbar-brand" asp-controller="Home" asp-action="Index">
             <span class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></span>
@@ -593,9 +557,13 @@
         </a>
 
         <div class="nav-links">
-            <a asp-controller="Home" asp-action="Index">Home</a>
+          
+            @if (User.Identity == null || !User.Identity.IsAuthenticated)
+            {
+                <a asp-controller="Home" asp-action="Index">Home</a>
+            }
 
-            @* Patient links *@
+            
             @if (User.IsInRole("Patient"))
             {
                 <a asp-controller="Patient" asp-action="Dashboard">Dashboard</a>
@@ -604,7 +572,7 @@
                 <a asp-controller="Patient" asp-action="MyPrescriptions">Prescriptions</a>
             }
 
-            @* Doctor links *@
+           
             @if (User.IsInRole("Doctor"))
             {
                 <a asp-controller="Doctor" asp-action="Dashboard">Dashboard</a>
@@ -613,7 +581,7 @@
                 <a asp-controller="Doctor" asp-action="MySchedule">Schedule</a>
             }
 
-            @* Receptionist links *@
+            
             @if (User.IsInRole("Receptionist"))
             {
                 <a asp-controller="Receptionist" asp-action="Dashboard">Dashboard</a>
@@ -622,20 +590,21 @@
                 <a asp-controller="Receptionist" asp-action="BookAppointment">Book</a>
             }
 
-            @* Clinic Manager links *@
+            
             @if (User.IsInRole("ClinicManager"))
             {
                 <a asp-controller="ClinicManager" asp-action="Dashboard">Dashboard</a>
                 <a asp-controller="ClinicManager" asp-action="Doctors">Doctors</a>
                 <a asp-controller="ClinicManager" asp-action="Patients">Patients</a>
-                <a asp-controller="ClinicManager" asp-action="Leaves">Leave Requests</a>
+                <a asp-controller="ClinicManager" asp-action="StaffManagement">Staff</a>
+                <a asp-controller="ClinicManager" asp-action="LeaveRequests">Leave Requests</a>
             }
         </div>
 
         <div class="nav-right">
             @if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                @* Notifications bell *@
+                
                 @if (User.IsInRole("Patient"))
                 {
                     <a asp-controller="Patient" asp-action="Notifications"
@@ -650,8 +619,22 @@
                         <i class="bi bi-bell"></i>
                     </a>
                 }
+                @if (User.IsInRole("Receptionist"))
+                {
+                    <a asp-controller="Receptionist" asp-action="Notifications"
+                       style="color:var(--text-mid);font-size:20px;text-decoration:none;padding:4px 8px;">
+                        <i class="bi bi-bell"></i>
+                    </a>
+                }
+                @if (User.IsInRole("ClinicManager"))
+                {
+                    <a asp-controller="ClinicManager" asp-action="Notifications"
+                       style="color:var(--text-mid);font-size:20px;text-decoration:none;padding:4px 8px;">
+                        <i class="bi bi-bell"></i>
+                    </a>
+                }
 
-                @* User badge *@
+               
                 <div class="nav-user-badge">
                     <div class="nav-avatar">
                         @(User.Identity.Name?.Length > 0 ? User.Identity.Name[0].ToString().ToUpper() : "U")
@@ -663,17 +646,14 @@
                     }
                     else if (User.IsInRole("Doctor"))
                     {
-
                         <span class="role-badge role-doctor">Doctor</span>
                     }
                     else if (User.IsInRole("Receptionist"))
                     {
-
                         <span class="role-badge role-receptionist">Reception</span>
                     }
                     else if (User.IsInRole("ClinicManager"))
                     {
-
                         <span class="role-badge role-manager">Manager</span>
                     }
                 </div>
@@ -695,14 +675,14 @@
         </div>
     </nav>
 
-    <!-- ── MAIN CONTENT ── -->
+   
     <main>
         <div class="container">
             @RenderBody()
         </div>
     </main>
 
-    <!-- ── FOOTER ── -->
+   
     <footer>
         <div class="container d-flex justify-content-between align-items-center">
             <span>&copy; 2026 Spirit Clinic — All rights reserved.</span>

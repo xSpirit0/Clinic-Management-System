@@ -496,6 +496,7 @@ namespace ClinicAPI.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("PatientReferenceNumber")
+                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -505,8 +506,7 @@ namespace ClinicAPI.Migrations
                     b.HasIndex("AspNetUserId");
 
                     b.HasIndex(new[] { "PatientReferenceNumber" }, "UQ__PatientP__8C7D9721B58AD64C")
-                        .IsUnique()
-                        .HasFilter("[PatientReferenceNumber] IS NOT NULL");
+                        .IsUnique();
 
                     b.HasIndex(new[] { "Cprnumber" }, "UQ__PatientP__BD136F743CE5CFA6")
                         .IsUnique();

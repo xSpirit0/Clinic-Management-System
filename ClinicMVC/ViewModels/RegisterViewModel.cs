@@ -2,6 +2,7 @@
 
 namespace ClinicMVC.ViewModels
 {
+ 
     public class RegisterViewModel
     {
         [Required]

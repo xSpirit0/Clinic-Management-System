@@ -68,6 +68,8 @@ namespace ClinicReporting.Models
     public class MissedAppointmentItem
     {
         public int AppointmentId { get; set; }
+        public int PatientId { get; set; }
+        public string PatientName { get; set; } = "";
         public DateOnly ScheduledDate { get; set; }
         public TimeOnly SlotStartTime { get; set; }
         public TimeOnly SlotEndTime { get; set; }
@@ -81,5 +83,32 @@ namespace ClinicReporting.Models
         public DateOnly? From { get; set; }
         public DateOnly? To { get; set; }
         public List<MissedAppointmentItem> MissedAppointments { get; set; } = new();
+    }
+
+    public class AppointmentItem
+    {
+        public int AppointmentId { get; set; }
+        public DateOnly ScheduledDate { get; set; }
+        public TimeOnly SlotStartTime { get; set; }
+        public TimeOnly SlotEndTime { get; set; }
+        public string DoctorName { get; set; } = "";
+        public int PatientId { get; set; }
+        public string Specialization { get; set; } = "";
+        public string Status { get; set; } = "";
+    }
+
+    public class TodayAppointmentsReport
+    {
+        public DateOnly Date { get; set; }
+        public int TotalAppointments { get; set; }
+        public List<AppointmentItem> Appointments { get; set; } = new();
+    }
+
+    public class UpcomingAppointmentsReport
+    {
+        public DateOnly From { get; set; }
+        public DateOnly To { get; set; }
+        public int TotalAppointments { get; set; }
+        public List<AppointmentItem> Appointments { get; set; } = new();
     }
 }
