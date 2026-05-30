@@ -43,7 +43,7 @@ namespace ClinicMVC.Controllers
                 // Create a new user with the email and password from the form
                 var user = new ApplicationUser
                 {
-                    UserName = model.UserName,
+                    UserName = model.Email,
                     Email = model.Email,
                     FirstName = model.FirstName,
                     LastName = model.LastName,
