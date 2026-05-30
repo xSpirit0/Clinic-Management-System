@@ -7,7 +7,10 @@ builder.Services.AddSession();
 // Add the database context and configure it to use SQL Server
 builder.Services.AddHttpClient("ClinicAPI", client =>
 {
-    client.BaseAddress = new Uri(builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7221");
+    var url = builder.Configuration["SpiritClinicApi:BaseUrl"]
+              ?? builder.Configuration["ClinicApi:BaseUrl"]
+              ?? "https://api-spiritclinic-s5g4-ss-dkf8c3hhgncpgsgy.ukwest-01.azurewebsites.net/";
+    client.BaseAddress = new Uri(url);
 });
 
 // Build the application
