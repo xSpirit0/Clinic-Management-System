@@ -234,32 +234,6 @@ namespace ClinicAPI.Controllers
             });
         }
 
-        [HttpGet("appointments/busiest-days")]
-        public async Task<IActionResult> GetBusiestDays(DateOnly? from, DateOnly? to)
-        {
-            var validation = ValidateDateRange(from, to);
-            if (validation != null) return validation;
-
-            var query = ApplyDateFilter(_context.Appointments, from, to);
-
-            var result = await query
-                .GroupBy(a => a.ScheduledDate)
-                .Select(g => new
-                {
-                    date = g.Key,
-                    appointmentCount = g.Count()
-                })
-                .OrderByDescending(x => x.appointmentCount)
-                .ThenBy(x => x.date)
-                .ToListAsync();
-
-            return Ok(new
-            {
-                from,
-                to,
-                busiestDays = result
-            });
-        }
 
         // Shows appointment counts for each doctor, so we can see which doctors are busiest and how many appointments they have in different statuses.
         [HttpGet("doctors/utilization")]
