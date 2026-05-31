@@ -555,12 +555,12 @@
             <span class="brand-icon"><i class="bi bi-heart-pulse-fill"></i></span>
             <span><span class="brand-word">Spirit</span><span class="brand-highlight"> Clinic</span></span>
         </a>
-
         <div class="nav-links">
           
             @if (User.Identity == null || !User.Identity.IsAuthenticated)
             {
                 <a asp-controller="Home" asp-action="Index">Home</a>
+                <a asp-controller="PublicLookup" asp-action="Index">Public Lookup</a>
             }
 
             
