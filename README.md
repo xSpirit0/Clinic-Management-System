@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🏥 Spirit Clinic
+#  Spirit Clinic
 ### Clinic Management System
 **IT8118 Advanced Programming — Group Project**
 Bahrain Polytechnic | Semester 2, 2025–2026
@@ -12,7 +12,7 @@ Bahrain Polytechnic | Semester 2, 2025–2026
 
 ---
 
-## 📋 Overview
+##  Overview
 
 A web-based clinic management platform that replaces paper-based scheduling with a fully digital system. The platform handles the complete appointment lifecycle, doctor scheduling, patient medical history, prescriptions, and operational reporting.
 
@@ -26,7 +26,7 @@ A web-based clinic management platform that replaces paper-based scheduling with
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 | Layer | Technology |
 |---|---|
@@ -38,7 +38,7 @@ A web-based clinic management platform that replaces paper-based scheduling with
 
 ---
 
-## 🔑 Demo Credentials
+##  Demo Credentials
 
 > All accounts use the same password: **`Pass@1234`**
 
